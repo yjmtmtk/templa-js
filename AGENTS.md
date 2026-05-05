@@ -78,7 +78,7 @@ Sub-agents may:
 
 - Edit one page's body — slot fillers between `<template src="_layouts/...">` tags.
 - Create a new page by composing existing shapes.
-- Pass new params to existing shape partials.
+- Pass data to shape partials by adding regular attributes (`title="..." body="..."`); fall back to `data-params="{ ... }"` for typed values. See the Syntax reference.
 - Write page-specific copy and small page-specific styles inline.
 
 Sub-agents must **not**:
@@ -143,20 +143,17 @@ Every page is a thin composition. Sections and primitives are partials.
       <template src="_partials/nav.html"></template>
     </template>
 
-    <template src="_partials/hero.html" params="{
-      heading: 'Compose HTML in HTML',
-      subheading: 'A tiny template loader.'
-    }"></template>
+    <template src="_partials/hero.html"
+      heading="Compose HTML in HTML"
+      subheading="A tiny template loader."></template>
 
     <section class="cards">
-      <template src="_partials/card.html" params="{
-        title: 'Tiny',
-        body: '~3KB gzipped, zero dependencies.'
-      }"></template>
-      <template src="_partials/card.html" params="{
-        title: 'Native',
-        body: 'Built on the standard template element.'
-      }"></template>
+      <template src="_partials/card.html"
+        title="Tiny"
+        body="~3KB gzipped, zero dependencies."></template>
+      <template src="_partials/card.html"
+        title="Native"
+        body="Built on the standard template element."></template>
     </section>
   </template>
 </body>
@@ -182,21 +179,50 @@ Every page is a thin composition. Sections and primitives are partials.
 
 ## Syntax reference
 
-### Variables
+### Passing data to a partial
+
+Each attribute on the calling `<template>` becomes a string data key inside the partial. That covers the common case:
+
+```html
+<template src="_partials/card.html" title="Tiny" body="Light, ~3KB."></template>
+```
+
+Inside `card.html`, `{{title}}` resolves to `Tiny` and `{{body}}` to `Light, ~3KB.`.
+
+Reserved attributes — these are NOT collected as data:
+
+| Attribute | Purpose |
+|---|---|
+| `src` | path of the partial to fetch |
+| `slot` | slot filler name (see Layouts) |
+| `data-params` | typed-value escape hatch; see below |
+
+For values that aren't strings (numbers, booleans, arrays, objects, computed values), use the **`data-params` escape hatch** — a JS object literal that merges into the data and overrides any same-named string attribute:
+
+```html
+<template src="_partials/list.html"
+          title="Featured"
+          data-params="{ count: 3, items: ['a', 'b', 'c'] }"></template>
+```
+
+A few patterns to avoid (they are silently ignored):
+
+```html
+<!-- Vue/Alpine binding prefix — not recognized by tmpla. -->
+<template src="x.html" :params="{ ... }"></template>
+
+<!-- Pre-0.2.0 syntax — REMOVED. Use multi-attribute or data-params instead. -->
+<template src="x.html" params="{ ... }"></template>
+```
+
+### Variables in templates
+
+Once data is passed in, partials read it with these placeholders:
 
 ```
 {{key}}        HTML-escaped variable
 {{{key}}}      raw variable (use only for trusted HTML)
 ```
-
-Pass values via the `params` attribute:
-
-```html
-<template src="_partials/card.html" params="{ title: 'Home', count: 3 }">
-</template>
-```
-
-`params` is evaluated as a JS object literal — use single quotes for strings inside, since the attribute itself uses double quotes. Trailing commas are allowed.
 
 ### Conditionals
 
@@ -291,15 +317,17 @@ The CLI walks every `.html` file in the source tree (skipping `_*` files and dir
 
 4. **Wrong relative path in a layout.** A layout in `_layouts/` calling `<template src="_partials/x.html">` resolves to `_layouts/_partials/x.html` (which doesn't exist). Use `../_partials/x.html`.
 
-5. **Double quotes inside `params`.** The attribute uses `"…"`, so use **single quotes** for strings inside (`params="{ title: 'Home' }"`).
+5. **`{{key}}` placeholders surviving into the output as literal text.** The partial received no value for that key. Pass it as a regular attribute (`title="Home"`), or for typed values use `data-params="{ count: 3 }"`. The pre-0.2.0 `params="{ ... }"` form has been removed.
 
-6. **`<title>` / `<meta og:*>` in a head partial when running in runtime mode.** SNS crawlers and Google's first wave don't run JS, so they will see no title and no description. Either build, or keep these tags inline in the page.
+6. **Single quotes inside `data-params`.** The attribute uses `"…"`, so use **single quotes** for strings inside (`data-params="{ name: 'Ada' }"`). If you need single quotes inside the value, switch to `data-params='{ name: "Ada" }'`.
 
-7. **Strict CSP without `'unsafe-eval'`.** The runtime evaluates `params` via `new Function`. If the deployment forbids `'unsafe-eval'`, switch to build mode — the output HTML contains no template syntax and needs no runtime.
+7. **`<title>` / `<meta og:*>` in a head partial when running in runtime mode.** SNS crawlers and Google's first wave don't run JS, so they will see no title and no description. Either build, or keep these tags inline in the page.
 
-8. **`<slot name="head">` inside a body-fragment layout.** `<slot>` only fills where it sits in the DOM. To inject head content per-page, write it directly in the page's `<head>`.
+8. **Strict CSP without `'unsafe-eval'`.** The runtime evaluates `params` via `new Function`. If the deployment forbids `'unsafe-eval'`, switch to build mode — the output HTML contains no template syntax and needs no runtime.
 
-9. **Runtime + Alpine timing.** Alpine auto-initializes before tmpla finishes expanding body templates, so x-data inside expanded content is missed. Pattern:
+9. **`<slot name="head">` inside a body-fragment layout.** `<slot>` only fills where it sits in the DOM. To inject head content per-page, write it directly in the page's `<head>`.
+
+10. **Runtime + Alpine timing.** Alpine auto-initializes before tmpla finishes expanding body templates, so x-data inside expanded content is missed. Pattern:
 
    ```html
    <script src="../tmpla.js"></script>

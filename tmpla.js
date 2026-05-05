@@ -7,9 +7,17 @@
  * Pure ES, zero dependencies.
  *
  * Usage:
- *   <template src="partials/header.html" params="{ title: 'Home' }"></template>
+ *   <template src="partials/header.html" title="Home"></template>
  *   <script src="tmpla.js"></script>
  *   <script>tmpla.start();</script>
+ *
+ * Passing data:
+ *   - Every attribute on <template> is a string data key, except the
+ *     reserved trio: src, slot, data-params.
+ *   - data-params holds an optional JS object literal with typed values
+ *     (numbers, booleans, arrays, objects); it overrides string attrs.
+ *
+ *     <template src="card.html" title="Tiny" data-params="{ count: 3 }"></template>
  *
  * Syntax:
  *   {{key}}                              HTML-escaped variable
@@ -19,12 +27,12 @@
  *
  * Layouts:
  *   <!-- _layouts/main.html -->
- *   <body><main><slot></slot></main><footer><slot name="meta"></slot></footer></body>
+ *   <header><slot name="nav"></slot></header><main><slot></slot></main>
  *
  *   <!-- page.html -->
  *   <template src="_layouts/main.html">
+ *     <template slot="nav">…</template>
  *     <h1>Hello</h1>
- *     <template slot="meta">© 2026</template>
  *   </template>
  *
  * Repository: https://github.com/yjmtmtk/tmpla
@@ -150,19 +158,29 @@ const tmpla = (() => {
     }
   );
 
+  // Every attribute is a string data key, except src / slot / data-params.
+  // data-params (a JS object literal) merges last and overrides string attrs.
+  const RESERVED = new Set(['src', 'slot', 'data-params']);
+  const collectData = el => {
+    const data = {};
+    for (const a of el.attributes) {
+      if (!RESERVED.has(a.name)) data[a.name] = a.value;
+    }
+    const dp = el.getAttribute('data-params');
+    if (dp) {
+      try { Object.assign(data, new Function(`return (${dp})`)()); }
+      catch (e) { console.error('[tmpla] bad data-params:', dp, e); }
+    }
+    return data;
+  };
+
   const expand = async el => {
     const src = el.getAttribute('src');
-    const paramsAttr = el.getAttribute('params');
     const url = new URL(src, location.href).href;
     const slots = parseSlots(el.innerHTML);
+    const data = collectData(el);
 
     const html = await fetchText(url);
-    let data = {};
-    if (paramsAttr) {
-      try { data = new Function(`return (${paramsAttr})`)(); }
-      catch (e) { console.error('[tmpla] bad params:', paramsAttr, e); }
-    }
-
     let out = render(rebase(html, url), data);
     out = fillSlots(out, slots);
     const frag = document.createRange().createContextualFragment(out);

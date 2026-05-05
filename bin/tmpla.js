@@ -10,7 +10,9 @@
  * Build expands every <template src="..."> in your source HTML files
  * by inlining the referenced partial. Supports the same syntax as the
  * runtime: {{key}}, {{{key}}}, {{#if}}/{{else}}/{{/if}}, {{#unless}},
- * plus Web Components-style <slot> for layouts.
+ * plus Web Components-style <slot> for layouts. Data is passed by
+ * regular HTML attributes; data-params="{ ... }" is the typed escape
+ * hatch.
  *
  * Convention: files and directories starting with "_" are treated as
  * partials and are never written to the output directory. Reference
@@ -52,6 +54,28 @@ function getAttr(attrs, name) {
   if (dq) return dq[1];
   const sq = attrs.match(new RegExp(`\\b${name}\\s*=\\s*'([^']*)'`));
   return sq ? sq[1] : null;
+}
+
+// Every attribute is a string data key, except src / slot / data-params.
+// data-params (a JS object literal) merges last and overrides string attrs.
+const RESERVED = new Set(['src', 'slot', 'data-params']);
+const ATTR = /(\w[\w:.-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'))?/g;
+
+function collectData(attrs) {
+  const data = {};
+  ATTR.lastIndex = 0;
+  let m;
+  while ((m = ATTR.exec(attrs))) {
+    const name = m[1];
+    if (RESERVED.has(name)) continue;
+    data[name] = m[2] ?? m[3] ?? '';
+  }
+  const dp = getAttr(attrs, 'data-params');
+  if (dp) {
+    try { Object.assign(data, new Function(`return (${dp})`)()); }
+    catch (e) { console.error('[tmpla] bad data-params:', dp, e.message); }
+  }
+  return data;
 }
 
 const TEMPLATE_OPEN = /<template((?:\s+[\w:.-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>]+))?)*)\s*(\/?)>/gi;
@@ -133,12 +157,7 @@ function expand(html, baseDir, depth = 0) {
     const src = getAttr(b.attrs, 'src');
 
     if (src) {
-      const paramsAttr = getAttr(b.attrs, 'params');
-      let data = {};
-      if (paramsAttr) {
-        try { data = new Function(`return (${paramsAttr})`)(); }
-        catch (e) { console.error('[tmpla] bad params:', paramsAttr, e.message); }
-      }
+      const data = collectData(b.attrs);
 
       // Expand any partials inside the slot payload first, in *this* dir
       const expandedPayload = expand(b.inner, baseDir, depth + 1);
@@ -261,14 +280,18 @@ Template syntax:
   {{#if key}}...{{else}}...{{/if}}     conditional
   {{#unless key}}...{{/unless}}        inverse conditional
 
+Passing data:
+  <template src="card.html" title="Tiny" body="Light, ~3KB."></template>
+  <template src="list.html" data-params="{ count: 3, items: ['a','b','c'] }"></template>
+
 Layouts (Web Components-style slots):
   <!-- _layouts/main.html -->
-  <body><main><slot></slot></main><footer><slot name="meta"></slot></footer></body>
+  <header><slot name="nav"></slot></header><main><slot></slot></main>
 
   <!-- page.html -->
   <template src="_layouts/main.html">
+    <template slot="nav">…</template>
     <h1>Hello</h1>
-    <template slot="meta">Posted today</template>
   </template>
 
 `);

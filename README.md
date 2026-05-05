@@ -13,7 +13,7 @@ It works in two modes:
 ```html
 <!-- index.html -->
 <body>
-  <template src="_partials/header.html" params="{ title: 'Home', loggedIn: true }"></template>
+  <template src="_partials/header.html" title="Home" data-params="{ loggedIn: true }"></template>
   <main>...</main>
   <template src="_partials/footer.html"></template>
 
@@ -85,14 +85,17 @@ Then call `tmpla.start()` to expand all of them:
 
 ### Passing data
 
-Use the `params` attribute. The value is evaluated as a JavaScript expression returning an object:
+Each attribute on the calling `<template>` becomes a string-valued data key inside the partial. For typed values (numbers, booleans, arrays, objects), use the `data-params` escape hatch — a JS object literal that overrides individual attributes.
 
 ```html
-<template
-  src="_partials/card.html"
-  params="{ title: 'Hello', count: 3, featured: true }"
-></template>
+<!-- Common case: regular attributes -->
+<template src="_partials/card.html" title="Hello" body="Welcome."></template>
+
+<!-- Typed values via data-params -->
+<template src="_partials/card.html" title="Hello" data-params="{ count: 3, featured: true }"></template>
 ```
+
+Reserved attributes — these are not collected as data: `src` (the partial path), `slot` (slot filler name), `data-params` (typed escape hatch).
 
 ### Template syntax
 
@@ -189,7 +192,7 @@ await tmpla.run('#my-region template[src]');
 
 ## Content Security Policy
 
-The runtime evaluates the `params` attribute with `new Function()`, so a strict CSP must allow `'unsafe-eval'`:
+The runtime evaluates the `data-params` attribute with `new Function()`, so a strict CSP must allow `'unsafe-eval'` if you use it. Plain string attributes don't trigger this.
 
 ```
 script-src 'self' 'unsafe-eval';
@@ -199,7 +202,7 @@ If you need a strict CSP without `'unsafe-eval'`, use the **build CLI** (`npx @y
 
 ## Caveats
 
-- `params` uses `new Function()` to evaluate the expression. **Do not pass untrusted user input** as the `params` attribute — treat it the same as inline `<script>` code.
+- `data-params` is evaluated with `new Function()`. **Do not pass untrusted user input** as `data-params` — treat it the same as inline `<script>` code. Regular string attributes are safe.
 - `{{key}}` HTML-escapes its value. If you need to inject HTML, use `{{{key}}}` and make sure the value is trusted.
 - Original `<template src>` elements are removed from the DOM after expansion.
 - This project is in early development (0.0.x). API may change.
@@ -230,7 +233,7 @@ src/
 Reference partials with a relative path:
 
 ```html
-<template src="_partials/header.html" params="{ title: 'Home' }"></template>
+<template src="_partials/header.html" title="Home"></template>
 ```
 
 ### Options
