@@ -2,8 +2,9 @@
  * tmpla — HTML template loader (read as "tempura")
  *
  * Drops <template src="..."> elements into the DOM and expands them
- * client-side. Supports {{key}} variables and {{#if}} / {{#unless}}
- * conditionals. Pure ES, zero dependencies.
+ * client-side. Supports {{key}} variables, {{#if}} / {{#unless}}
+ * conditionals, and Web Components-style <slot> for layouts.
+ * Pure ES, zero dependencies.
  *
  * Usage:
  *   <template src="partials/header.html" params="{ title: 'Home' }"></template>
@@ -15,6 +16,16 @@
  *   {{{key}}}                            raw variable (no escape)
  *   {{#if key}}...{{else}}...{{/if}}     conditional
  *   {{#unless key}}...{{/unless}}        inverse conditional
+ *
+ * Layouts:
+ *   <!-- _layouts/main.html -->
+ *   <body><main><slot></slot></main><footer><slot name="meta"></slot></footer></body>
+ *
+ *   <!-- page.html -->
+ *   <template src="_layouts/main.html">
+ *     <h1>Hello</h1>
+ *     <template slot="meta">© 2026</template>
+ *   </template>
  *
  * Repository: https://github.com/yjmtmtk/tmpla
  * License: MIT
@@ -43,8 +54,6 @@ const tmpla = (() => {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-  // Innermost {{#if|unless KEY}}...{{else}}...{{/if|unless}}
-  // (innermost = block content contains no other {{#if}} / {{#unless}})
   const COND = /{{\s*#(if|unless)\s+(\w+)\s*}}((?:(?!{{\s*#(?:if|unless))[\s\S])*?)(?:{{\s*else\s*}}((?:(?!{{\s*#(?:if|unless))[\s\S])*?))?{{\s*\/\1\s*}}/g;
 
   const render = (html, data) => {
@@ -60,17 +69,92 @@ const tmpla = (() => {
       .replace(/{{\s*(\w+)\s*}}/g, (m, k) => k in data ? esc(data[k]) : m);
   };
 
-  // Rewrite <template src> in fetched HTML so nested partials resolve
-  // relative to the parent partial, not the document.
   const rebase = (html, baseUrl) => html.replace(
     /(<template\b[^>]*\bsrc\s*=\s*["'])([^"']+)/gi,
     (_, pre, src) => pre + new URL(src, baseUrl).href
+  );
+
+  // Read an attribute value out of a raw attribute string. Tries double then
+  // single quoting so values containing the other quote survive intact.
+  const getAttr = (attrs, name) => {
+    const dq = attrs.match(new RegExp(`\\b${name}\\s*=\\s*"([^"]*)"`));
+    if (dq) return dq[1];
+    const sq = attrs.match(new RegExp(`\\b${name}\\s*=\\s*'([^']*)'`));
+    return sq ? sq[1] : null;
+  };
+
+  // Find top-level <template>...</template> blocks in `html`, depth-aware so
+  // nested templates do not confuse the matching close. Scans against a
+  // length-preserving redacted copy where quoted string contents are blanked,
+  // so a literal `<template>` token inside an attribute value (e.g. inside a
+  // params string) can't desync the depth counter.
+  const TEMPLATE_OPEN = /<template((?:\s+[\w:.-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>]+))?)*)\s*(\/?)>/gi;
+  const TEMPLATE_TAG = /<template\b|<\/template\s*>/gi;
+  const redactStrings = s => s.replace(
+    /"[^"]*"|'[^']*'/g,
+    m => m[0] + ' '.repeat(m.length - 2) + m[m.length - 1]
+  );
+
+  const findTemplateBlocks = html => {
+    const scan = redactStrings(html);
+    const out = [];
+    TEMPLATE_OPEN.lastIndex = 0;
+    let m;
+    while ((m = TEMPLATE_OPEN.exec(scan))) {
+      const start = m.index;
+      const openEnd = start + m[0].length;
+      const attrs = html.substring(start + 9, start + 9 + m[1].length);
+      if (m[2] === '/') {
+        out.push({ start, end: openEnd, attrs, inner: '' });
+        continue;
+      }
+      TEMPLATE_TAG.lastIndex = openEnd;
+      let depth = 1, t;
+      while (depth > 0 && (t = TEMPLATE_TAG.exec(scan))) {
+        if (t[0][1] === '/') depth--;
+        else depth++;
+        if (depth === 0) {
+          out.push({ start, end: t.index + t[0].length, attrs, inner: html.slice(openEnd, t.index) });
+          TEMPLATE_OPEN.lastIndex = t.index + t[0].length;
+          break;
+        }
+      }
+    }
+    return out;
+  };
+
+  // Split inner content of a <template src> call into named slot fillers and
+  // remaining default content. <template slot="X">...</template> becomes
+  // named[X], everything else stays in default.
+  const parseSlots = innerHtml => {
+    const named = {};
+    const fillers = findTemplateBlocks(innerHtml)
+      .filter(b => getAttr(b.attrs, 'slot'))
+      .sort((a, b) => b.start - a.start);
+    let def = innerHtml;
+    for (const b of fillers) {
+      named[getAttr(b.attrs, 'slot')] = b.inner;
+      def = def.slice(0, b.start) + def.slice(b.end);
+    }
+    return { named, default: def };
+  };
+
+  // Replace <slot> / <slot name="X"> in partial HTML with provided fillers,
+  // falling back to the slot's own children when no filler is supplied.
+  const fillSlots = (html, slots) => html.replace(
+    /<slot(\s[^>]*?)?>([\s\S]*?)<\/slot>/gi,
+    (_, attrs, fallback) => {
+      const name = attrs ? getAttr(attrs, 'name') : null;
+      if (name) return name in slots.named ? slots.named[name] : fallback;
+      return slots.default.trim() ? slots.default : fallback;
+    }
   );
 
   const expand = async el => {
     const src = el.getAttribute('src');
     const paramsAttr = el.getAttribute('params');
     const url = new URL(src, location.href).href;
+    const slots = parseSlots(el.innerHTML);
 
     const html = await fetchText(url);
     let data = {};
@@ -79,7 +163,8 @@ const tmpla = (() => {
       catch (e) { console.error('[tmpla] bad params:', paramsAttr, e); }
     }
 
-    const out = render(rebase(html, url), data);
+    let out = render(rebase(html, url), data);
+    out = fillSlots(out, slots);
     const frag = document.createRange().createContextualFragment(out);
     const waits = [...frag.querySelectorAll('link[rel="stylesheet"], script[src]')]
       .map(r => new Promise(done => { r.onload = r.onerror = done; }));

@@ -1,25 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <template src="_partials/head.html" params="{ title: 'tmpla demo' }"></template>
-</head>
-<body>
-  <template
-    src="_partials/header.html"
-    params="{ title: 'tmpla 🍤', loggedIn: true, user: 'Alice' }"
-  ></template>
-
-  <main style="max-width: 640px; margin: 2rem auto; font-family: system-ui;">
-    <h2>What is tmpla?</h2>
-    <p>A tiny HTML template loader using the native <code>&lt;template src&gt;</code> element.</p>
-    <p>This page is composed from <code>head.html</code>, <code>header.html</code>, and <code>footer.html</code>.</p>
-  </main>
-
-  <template src="_partials/footer.html" params="{ year: 2026 }"></template>
-
+  <title>tmpla — home</title>
+  <template src="_partials/meta.html"></template>
   <script src="../tmpla.js"></script>
-  <script>tmpla.start(() => console.log('All templates mounted.'));</script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
+  <script>
+    tmpla.start(() => window.Alpine && Alpine.initTree(document.body));
+  </script>
+</head>
+<body data-page="home">
+  <template src="_layouts/main.html">
+    <template slot="nav">
+      <template src="_partials/nav.html"></template>
+    </template>
+
+    <template src="_partials/hero.html" params="{
+      heading: 'Compose HTML in HTML',
+      subheading: 'A tiny template loader powered by the native template element.'
+    }"></template>
+
+    <section class="cards">
+      <template src="_partials/feature-card.html" params="{
+        title: 'Tiny',
+        body: 'Around 200 lines of source, ~2.7KB gzipped, zero dependencies.'
+      }"></template>
+      <template src="_partials/feature-card.html" params="{
+        title: 'Native',
+        body: 'Built on the standard <template> element and Web Components-style slots — no custom tags, no DSL.'
+      }"></template>
+      <template src="_partials/feature-card.html" params="{
+        title: 'Two modes',
+        body: 'Same syntax in the runtime script and in the build CLI. Pick whichever fits your deploy.'
+      }"></template>
+    </section>
+
+    <template src="_partials/faq.html"></template>
+  </template>
 </body>
 </html>

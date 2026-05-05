@@ -1,0 +1,36 @@
+<section class="faq" x-data="{ open: null }">
+  <h2>FAQ</h2>
+
+  <div class="faq-item" :class="{ active: open === 1 }">
+    <button type="button" @click="open = open === 1 ? null : 1">
+      What is tmpla?
+    </button>
+    <div x-show="open === 1">
+      A tiny HTML template loader that lets you compose pages from
+      <code>&lt;template src&gt;</code> partials, with Handlebars-style
+      variables and Web Components-style slots.
+    </div>
+  </div>
+
+  <div class="faq-item" :class="{ active: open === 2 }">
+    <button type="button" @click="open = open === 2 ? null : 2">
+      Do I need a build step?
+    </button>
+    <div x-show="open === 2">
+      No. Drop the runtime script into a page and it works. For SEO or
+      faster first paint, run <code>npx @yjmtmtk/tmpla build</code> to
+      pre-render to static HTML.
+    </div>
+  </div>
+
+  <div class="faq-item" :class="{ active: open === 3 }">
+    <button type="button" @click="open = open === 3 ? null : 3">
+      How do I add interactivity?
+    </button>
+    <div x-show="open === 3">
+      Pair tmpla with <a href="https://alpinejs.dev/" target="_blank" rel="noopener">Alpine.js</a>.
+      tmpla composes the page; Alpine reacts to user input. This very
+      accordion is powered by Alpine.
+    </div>
+  </div>
+</section>

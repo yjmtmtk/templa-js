@@ -9,7 +9,8 @@
  *
  * Build expands every <template src="..."> in your source HTML files
  * by inlining the referenced partial. Supports the same syntax as the
- * runtime: {{key}}, {{{key}}}, {{#if}}/{{else}}/{{/if}}, {{#unless}}.
+ * runtime: {{key}}, {{{key}}}, {{#if}}/{{else}}/{{/if}}, {{#unless}},
+ * plus Web Components-style <slot> for layouts.
  *
  * Convention: files and directories starting with "_" are treated as
  * partials and are never written to the output directory. Reference
@@ -45,18 +46,76 @@ function render(html, data) {
     .replace(/{{\s*(\w+)\s*}}/g, (m, k) => k in data ? escHtml(data[k]) : m);
 }
 
-// ─── template tag parsing (regex-based, no DOM dep) ──────────────────
-// Quote-aware: attribute values can contain '>' characters (e.g. params
-// holding HTML strings like '<script>...</script>').
-const TEMPLATE_TAG = /<template((?:\s+[\w:.-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>]+))?)*)\s*\/?>(?:[\s\S]*?<\/template>)?/gi;
-
+// ─── attribute / template / slot parsing ─────────────────────────────
 function getAttr(attrs, name) {
-  // Match double-quoted first so single quotes inside params (e.g. JS object
-  // literals like { title: 'foo' }) are preserved verbatim.
   const dq = attrs.match(new RegExp(`\\b${name}\\s*=\\s*"([^"]*)"`));
   if (dq) return dq[1];
   const sq = attrs.match(new RegExp(`\\b${name}\\s*=\\s*'([^']*)'`));
   return sq ? sq[1] : null;
+}
+
+const TEMPLATE_OPEN = /<template((?:\s+[\w:.-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>]+))?)*)\s*(\/?)>/gi;
+const TEMPLATE_TAG = /<template\b|<\/template\s*>/gi;
+
+// Length-preserving redaction: blank out quoted string contents so a literal
+// `<template>` token inside an attribute value can't desync depth tracking.
+const redactStrings = s => s.replace(
+  /"[^"]*"|'[^']*'/g,
+  m => m[0] + ' '.repeat(m.length - 2) + m[m.length - 1]
+);
+
+// Top-level <template>...</template> blocks in `html`, depth-aware so
+// nested templates do not confuse the matching close.
+function findTemplateBlocks(html) {
+  const scan = redactStrings(html);
+  const out = [];
+  TEMPLATE_OPEN.lastIndex = 0;
+  let m;
+  while ((m = TEMPLATE_OPEN.exec(scan))) {
+    const start = m.index;
+    const openEnd = start + m[0].length;
+    const attrs = html.substring(start + 9, start + 9 + m[1].length);
+    if (m[2] === '/') {
+      out.push({ start, end: openEnd, attrs, inner: '' });
+      continue;
+    }
+    TEMPLATE_TAG.lastIndex = openEnd;
+    let depth = 1, t;
+    while (depth > 0 && (t = TEMPLATE_TAG.exec(scan))) {
+      if (t[0][1] === '/') depth--;
+      else depth++;
+      if (depth === 0) {
+        out.push({ start, end: t.index + t[0].length, attrs, inner: html.slice(openEnd, t.index) });
+        TEMPLATE_OPEN.lastIndex = t.index + t[0].length;
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+function parseSlots(innerHtml) {
+  const named = {};
+  const fillers = findTemplateBlocks(innerHtml)
+    .filter(b => getAttr(b.attrs, 'slot'))
+    .sort((a, b) => b.start - a.start);
+  let def = innerHtml;
+  for (const b of fillers) {
+    named[getAttr(b.attrs, 'slot')] = b.inner;
+    def = def.slice(0, b.start) + def.slice(b.end);
+  }
+  return { named, default: def };
+}
+
+function fillSlots(html, slots) {
+  return html.replace(
+    /<slot(\s[^>]*?)?>([\s\S]*?)<\/slot>/gi,
+    (_, attrs, fallback) => {
+      const name = attrs ? getAttr(attrs, 'name') : null;
+      if (name) return name in slots.named ? slots.named[name] : fallback;
+      return slots.default.trim() ? slots.default : fallback;
+    }
+  );
 }
 
 // ─── recursive expansion ─────────────────────────────────────────────
@@ -66,39 +125,46 @@ function expand(html, baseDir, depth = 0) {
     return html;
   }
 
-  // Collect matches first (right-to-left replacement preserves indices)
-  const matches = [];
-  let m;
-  TEMPLATE_TAG.lastIndex = 0;
-  while ((m = TEMPLATE_TAG.exec(html))) {
-    if (getAttr(m[1], 'src')) {
-      matches.push({ full: m[0], attrs: m[1], idx: m.index });
-    }
-  }
-  if (matches.length === 0) return html;
+  const blocks = findTemplateBlocks(html);
+  if (blocks.length === 0) return html;
 
-  for (let i = matches.length - 1; i >= 0; i--) {
-    const { full, attrs, idx } = matches[i];
-    const src = getAttr(attrs, 'src');
-    const paramsAttr = getAttr(attrs, 'params');
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const b = blocks[i];
+    const src = getAttr(b.attrs, 'src');
 
-    let data = {};
-    if (paramsAttr) {
-      try { data = new Function(`return (${paramsAttr})`)(); }
-      catch (e) { console.error('[tmpla] bad params:', paramsAttr, e.message); }
-    }
+    if (src) {
+      const paramsAttr = getAttr(b.attrs, 'params');
+      let data = {};
+      if (paramsAttr) {
+        try { data = new Function(`return (${paramsAttr})`)(); }
+        catch (e) { console.error('[tmpla] bad params:', paramsAttr, e.message); }
+      }
 
-    const partialPath = path.resolve(baseDir, src);
-    let content = '';
-    if (fs.existsSync(partialPath)) {
-      content = fs.readFileSync(partialPath, 'utf8');
-      content = render(content, data);
-      content = expand(content, path.dirname(partialPath), depth + 1);
+      // Expand any partials inside the slot payload first, in *this* dir
+      const expandedPayload = expand(b.inner, baseDir, depth + 1);
+      const slots = parseSlots(expandedPayload);
+
+      const partialPath = path.resolve(baseDir, src);
+      let content = '';
+      if (fs.existsSync(partialPath)) {
+        content = fs.readFileSync(partialPath, 'utf8');
+        content = render(content, data);
+        content = fillSlots(content, slots);
+        content = expand(content, path.dirname(partialPath), depth + 1);
+      } else {
+        console.error('[tmpla] partial not found:', partialPath);
+      }
+
+      html = html.slice(0, b.start) + content + html.slice(b.end);
     } else {
-      console.error('[tmpla] partial not found:', partialPath);
+      // Not a partial include (e.g. <template slot="x"> filler); recurse
+      // into its inner so any partials there get expanded in this context.
+      const expandedInner = expand(b.inner, baseDir, depth + 1);
+      if (expandedInner !== b.inner) {
+        const open = `<template${b.attrs}>`;
+        html = html.slice(0, b.start) + open + expandedInner + '</template>' + html.slice(b.end);
+      }
     }
-
-    html = html.slice(0, idx) + content + html.slice(idx + full.length);
   }
   return html;
 }
@@ -118,7 +184,6 @@ function walk(srcDir, distDir) {
       const inPath = path.join(dir, entry.name);
       const outPath = path.join(outDir, entry.name);
 
-      // Don't recurse into the output directory if it lives inside src
       if (path.resolve(inPath) === distAbs) continue;
 
       if (entry.isDirectory()) {
@@ -195,6 +260,16 @@ Template syntax:
   {{{key}}}                            raw variable
   {{#if key}}...{{else}}...{{/if}}     conditional
   {{#unless key}}...{{/unless}}        inverse conditional
+
+Layouts (Web Components-style slots):
+  <!-- _layouts/main.html -->
+  <body><main><slot></slot></main><footer><slot name="meta"></slot></footer></body>
+
+  <!-- page.html -->
+  <template src="_layouts/main.html">
+    <h1>Hello</h1>
+    <template slot="meta">Posted today</template>
+  </template>
 
 `);
 }

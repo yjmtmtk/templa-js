@@ -39,7 +39,7 @@ It works in two modes:
 - **No build step** — drop in a `<script>` tag
 - **No dependencies** — pure vanilla JavaScript
 - **Standard HTML** — uses the native `<template>` element, not custom tags
-- **Tiny** — ~120 lines of source, ~1.7KB gzipped
+- **Tiny** — ~200 lines of source, ~3KB gzipped
 - **Familiar syntax** — Handlebars-style `{{var}}` / `{{#if}}` / `{{#unless}}`
 - **Recursive** — partials inside partials just work
 - **Resource-aware** — waits for `<link rel="stylesheet">` and `<script src>` inside partials before resolving
@@ -106,16 +106,57 @@ Use the `params` attribute. The value is evaluated as a JavaScript expression re
 
 Conditionals can be nested. Variables fall through unchanged when the key is missing from `data`.
 
-### Nested partials
+### Layouts and slots
 
-Partials can include other partials. `tmpla` keeps expanding until no `<template src>` remains:
+A partial can declare insertion points with `<slot>`. Pages fill those slots by writing content inside the calling `<template src>`.
+
+Keep layouts as **body fragments** (no `<!DOCTYPE>` / `<html>` / `<head>` / `<body>` wrapper) so they work in both runtime and build modes. Each page provides its own document skeleton and embeds the layout where the body content goes.
 
 ```html
-<!-- layout.html -->
-<template src="header.html"></template>
-<slot></slot>
-<template src="footer.html"></template>
+<!-- _layouts/main.html (body fragment) -->
+<header><slot name="nav">Default Nav</slot></header>
+<main><slot></slot></main>
+<footer><slot name="footer">&copy; 2026</slot></footer>
 ```
+
+```html
+<!-- page.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Home</title>
+</head>
+<body>
+  <template src="_layouts/main.html">
+    <template slot="nav">
+      <a href="/">Home</a>
+      <a href="/about">About</a>
+    </template>
+
+    <h1>Welcome</h1>
+    <p>Anything outside &lt;template slot&gt; goes into the default slot.</p>
+
+    <!-- footer slot is omitted, so its fallback renders -->
+  </template>
+
+  <script src="https://cdn.jsdelivr.net/npm/@yjmtmtk/tmpla/tmpla.min.js"></script>
+  <script>tmpla.start();</script>
+</body>
+</html>
+```
+
+Rules:
+
+- `<slot>` (no name) receives every node from the calling `<template>` that is not wrapped in `<template slot="...">`.
+- `<slot name="X">` receives the content of the matching `<template slot="X">` filler.
+- A slot's own children are the **fallback** — they render when no filler is supplied.
+- Slot fillers may themselves contain `<template src="...">` partials; they are expanded recursively in the call site's directory context.
+
+This pattern works identically with the build CLI — `npx @yjmtmtk/tmpla build` inlines the layout into the output and you can drop the script tags.
+
+### Nested partials
+
+Partials can include other partials. `tmpla` keeps expanding until no `<template src>` remains.
 
 ### Loading order
 
@@ -213,6 +254,27 @@ Both modes share the same template syntax, so a partial works in either:
 | Use case | quick prototypes, dev | production deploy, SEO, static hosting |
 
 You can also use both: ship the static HTML for first paint and keep `tmpla.js` for any partials you want to load dynamically later.
+
+## Recommended companion: Alpine.js
+
+`tmpla` handles **composition** (partials, layouts, variables, conditionals at build or load time). For **interactive behaviour** (modals, dropdowns, counters, form state), pair it with [Alpine.js](https://alpinejs.dev/) — also HTML-first, no build step, ~15&nbsp;KB.
+
+```html
+<!-- somewhere in your <head> -->
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
+
+<!-- in any partial -->
+<section x-data="{ open: false }">
+  <button @click="open = !open">Toggle</button>
+  <div x-show="open">Hidden until clicked.</div>
+</section>
+```
+
+Decision rule: tmpla for everything that can be resolved before the user clicks; Alpine for everything that depends on user interaction.
+
+## Working with AI agents
+
+If you use Claude Code, Cursor, Aider, Copilot, or similar AI tools, drop [`AGENTS.md`](./AGENTS.md) into your project root. It teaches agents the file conventions, parallel-section pattern, and common pitfalls so they can edit a tmpla-based site without learning by mistake.
 
 ## License
 
