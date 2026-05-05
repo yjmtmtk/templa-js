@@ -9,9 +9,14 @@ code, pre { background: #eee; border-radius: 3px; }
 code { padding: 0 .25em; }
 pre { padding: .75rem 1rem; overflow: auto; }
 
-/* Hero */
+/* Hero (landing-page primitive) */
 .hero h1 { margin: 0 0 .5rem; font-size: 2rem; }
 .hero p { margin: 0; color: #555; }
+
+/* Sub-hero (inner-page primitive) */
+.sub-hero { padding-bottom: 1.25rem; border-bottom: 1px solid #ddd; }
+.sub-hero h1 { margin: 0 0 .25rem; font-size: 1.5rem; }
+.sub-hero p { margin: 0; color: #666; font-size: .95rem; }
 
 /* Feature cards (parameterized partial used 3x) */
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }

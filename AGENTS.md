@@ -1,10 +1,10 @@
 # AGENTS.md — guide for AI agents working with tmpla
 
-This file is for AI agents (Claude Code, Cursor, Aider, Copilot, etc.) tasked with editing a tmpla-based website. Read it before touching files.
+This file is for AI coding agents (Claude Code, Cursor, Aider, Copilot, etc.) tasked with editing a tmpla-based website. **Read it before touching files.** It is structured as a workflow first, reference second.
 
 ## TL;DR
 
-tmpla is a tiny HTML template loader that gives you:
+tmpla is a tiny HTML template loader giving you:
 
 - `<template src="...">` to inline another HTML file
 - `{{var}}`, `{{#if}}/{{else}}/{{/if}}`, `{{#unless}}` for variables and conditionals
@@ -24,46 +24,140 @@ Same syntax works at runtime (browser) and at build time. Zero dependencies.
 | SPA with heavy client state | ❌ pick React / Vue / Svelte |
 | Quick interactive widgets on otherwise static pages | ✅ tmpla + Alpine.js |
 
-## File conventions
+---
 
-Always follow these rules — the build CLI depends on them.
+## How to build a site — the two-phase rule
+
+Building a coherent site requires **two distinct phases**, in order. Skipping or interleaving them produces visually fragmented sites where every section reinvents its own typography, spacing, and component shapes.
+
+```
+┌────────────────────────────┐      ┌────────────────────────────┐
+│  Phase 1 — skeleton        │      │  Phase 2 — content fill    │
+│  serial, orchestrator only │  →   │  parallel, sub-agents      │
+│                            │      │                            │
+│  • design tokens           │      │  • write copy into shapes  │
+│  • layout                  │      │  • compose pages           │
+│  • shape primitives        │      │  • call partials w/ params │
+│  • chrome partials         │      │                            │
+│  • empty page shells       │      │  one sub-agent per file    │
+└────────────────────────────┘      └────────────────────────────┘
+```
+
+### Phase 1 — skeleton (serial, orchestrator only)
+
+Lock down everything downstream sections will *consume*. **One agent in charge. No parallel work yet.**
+
+1. **Design tokens in `style.css`** — base typography, color scale, spacing scale, radius / shadow values. Every later style decision derives from these.
+2. **Layout** — `_layouts/main.html` as a body fragment (no `<html>`/`<body>` wrapper) with `<header>`, the main `<slot>`, and `<footer>`.
+3. **Chrome partials** — `_partials/meta.html` (shared `<head>`), `_partials/nav.html`, anything else that appears identically on every page.
+4. **Shape primitives** — the visual building blocks every content section will reuse. A typical kit:
+
+   | Partial | Purpose |
+   |---|---|
+   | `_partials/hero.html` | Landing-page hero (large, full-bleed) |
+   | `_partials/sub-hero.html` | Inner-page header (smaller, page title + tagline) |
+   | `_partials/card.html` | Reusable card with `title` / `body` / optional `image` params |
+   | `_partials/section.html` | Generic titled section wrapper (optional) |
+   | `_partials/button.html` | Call-to-action button (optional) |
+
+   Add primitives only when the design clearly needs them. Resist over-design: `card`, `hero`, `sub-hero` cover most sites.
+
+5. **Page shells** — every entry HTML file (`index.html`, `about.html`, …) exists as a thin `<template src>` composition, with placeholder slot fillers if the content isn't ready.
+
+Phase 1 is complete when:
+
+- `npx @yjmtmtk/tmpla build` succeeds.
+- The output renders cohesively even with placeholder copy.
+- Every shape that downstream sections might need is already a partial.
+
+### Phase 2 — content fill (parallel, sub-agents)
+
+With the skeleton locked, dispatch sub-agents to fill in the actual content. **One sub-agent per content unit, all running concurrently.**
+
+Sub-agents may:
+
+- Edit one page's body — slot fillers between `<template src="_layouts/...">` tags.
+- Create a new page by composing existing shapes.
+- Pass new params to existing shape partials.
+- Write page-specific copy and small page-specific styles inline.
+
+Sub-agents must **not**:
+
+- Touch `style.css` (design tokens / shape styles live there).
+- Touch `_layouts/`.
+- Touch any shape primitive in `_partials/`.
+- Invent a new shape primitive. If a sub-agent decides one is needed, **stop, escalate to the orchestrator** for a brief phase 1.5 (extend the skeleton serially), then resume phase 2.
+
+### Why this order matters
+
+Parallel agents have no shared visual context. Started before the skeleton locks the design system and shape vocabulary, each agent will:
+
+- Pick its own typography and spacing → site looks Frankensteined.
+- Reinvent card and section shapes → CSS bloats, components don't compose.
+- Make inconsistent inner-page headers → no rhythm between pages.
+
+The **sub-hero** pattern is the canonical example. Define it once in phase 1; every inner page calls it in phase 2 → consistent inner-page chrome with zero coordination overhead between sub-agents.
+
+---
+
+## File conventions
 
 ```
 src/
 ├── index.html              ← entry page (written to dist/)
 ├── about.html              ← entry page
+├── style.css               ← design tokens + shape styles (touched only in phase 1)
 ├── _layouts/               ← layouts (skipped from output)
 │   └── main.html
 └── _partials/              ← partials (skipped from output)
-    ├── intro.html
-    └── features.html
+    ├── meta.html           ← chrome
+    ├── nav.html            ← chrome
+    ├── hero.html           ← shape primitive
+    ├── sub-hero.html       ← shape primitive
+    ├── card.html           ← shape primitive
+    └── …content sections…
 ```
 
-- **`_` prefix** on a file or directory marks it as a partial — it is not copied to the build output. Reference partials with relative paths from the file using them.
+- Files and directories starting with `_` are partials and are **not copied** to the build output. Reference them with relative paths.
 - Entry pages live at any non-underscore path under the source root.
-- A partial referenced by `<template src="X">` is resolved relative to **the file containing the tag**, not relative to the entry page. Layouts referencing other partials must use paths relative to the layout file (e.g. `../_partials/foo.html` if the layout lives in `_layouts/`).
+- `<template src="X">` inside a partial is resolved relative to **the file containing the tag**, not the entry page. A layout in `_layouts/` referencing `_partials/foo.html` must write `../_partials/foo.html`.
 
-## Composition pattern (recommended)
+---
 
-Make every page a thin composition. Put each section into its own partial. This lets multiple agents edit different sections in parallel without conflicts and keeps each file small enough to review at a glance.
+## Composition pattern
+
+Every page is a thin composition. Sections and primitives are partials.
 
 ```html
-<!-- src/index.html — page is just composition -->
+<!-- src/index.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <title>Home</title>
+  <template src="_partials/meta.html"></template>
   <link rel="stylesheet" href="./style.css" />
 </head>
-<body>
-  <template src="_layouts/main.html" params="{ site: 'My Site', year: 2026 }">
+<body data-page="home">
+  <template src="_layouts/main.html">
     <template slot="nav">
-      <template src="_partials/site-nav.html"></template>
+      <template src="_partials/nav.html"></template>
     </template>
 
-    <template src="_partials/hero.html"></template>
-    <template src="_partials/features.html"></template>
-    <template src="_partials/cta.html"></template>
+    <template src="_partials/hero.html" params="{
+      heading: 'Compose HTML in HTML',
+      subheading: 'A tiny template loader.'
+    }"></template>
+
+    <section class="cards">
+      <template src="_partials/card.html" params="{
+        title: 'Tiny',
+        body: '~3KB gzipped, zero dependencies.'
+      }"></template>
+      <template src="_partials/card.html" params="{
+        title: 'Native',
+        body: 'Built on the standard template element.'
+      }"></template>
+    </section>
   </template>
 </body>
 </html>
@@ -71,31 +165,20 @@ Make every page a thin composition. Put each section into its own partial. This 
 
 ```html
 <!-- src/_layouts/main.html — body fragment, NOT a full document -->
-<header>
-  <strong>{{site}}</strong>
-  <slot name="nav"></slot>
-</header>
-<main>
-  <slot></slot>
-</main>
-<footer>
-  <small>&copy; {{year}} {{site}}</small>
-</footer>
+<header><nav><slot name="nav"></slot></nav></header>
+<main><slot></slot></main>
+<footer><small>&copy; 2026</small></footer>
 ```
 
 ```html
-<!-- src/_partials/hero.html — focused, AI-editable in isolation -->
-<section class="hero">
-  <h1>One product. Many wins.</h1>
-  <p>Short tagline.</p>
-</section>
+<!-- src/_partials/card.html — focused, parameterized -->
+<article class="card">
+  <h3>{{title}}</h3>
+  <p>{{body}}</p>
+</article>
 ```
 
-### Why thin composition
-
-- Each section file is small → fits well within an AI context window.
-- Sections have no shared state → multiple agents (or parallel tool calls) can edit different partials without merge conflicts.
-- The page file rarely needs editing once the composition is set.
+---
 
 ## Syntax reference
 
@@ -106,10 +189,10 @@ Make every page a thin composition. Put each section into its own partial. This 
 {{{key}}}      raw variable (use only for trusted HTML)
 ```
 
-Pass values via `params` on the `<template>` tag:
+Pass values via the `params` attribute:
 
 ```html
-<template src="_partials/hero.html" params="{ title: 'Home', count: 3 }">
+<template src="_partials/card.html" params="{ title: 'Home', count: 3 }">
 </template>
 ```
 
@@ -131,7 +214,7 @@ Conditionals can be nested.
 <!-- _layouts/page.html -->
 <header><slot name="nav"></slot></header>
 <main><slot></slot></main>
-<footer><slot name="footer">&copy; 2026</slot></footer>
+<footer>&copy; 2026</footer>
 ```
 
 ```html
@@ -140,23 +223,27 @@ Conditionals can be nested.
   <template slot="nav">…</template>     <!-- → <slot name="nav"> -->
   <h1>…</h1>                            <!-- → <slot> (default) -->
   <p>…</p>                              <!-- → <slot> (default) -->
-  <template slot="footer">…</template>  <!-- → <slot name="footer"> -->
 </template>
 ```
 
-Anything inside the calling `<template src>` that is **not** wrapped in a `<template slot="X">` becomes the default slot's payload. A slot's own children are the fallback used when no filler is supplied.
+Anything inside the calling `<template src>` not wrapped in a `<template slot="X">` becomes the default slot's payload. A slot's own children are the **fallback** used when no filler is supplied.
 
-## Dynamic interactivity: pair with Alpine.js
+---
 
-For interactive bits (modals, dropdowns, counters, tabs, form behaviour) prefer **Alpine.js**. It is HTML-first like tmpla, has no build step of its own, and adds reactive state via `x-*` attributes you write directly in your partials.
+## Static composition vs runtime interactivity
 
-Add the script once, in the page (or layout) `<head>`:
+Decision rule:
+
+- **Anything resolvable at build time / page load** → tmpla
+- **Anything that depends on user input or runtime state** → Alpine.js
+
+Pair tmpla with [Alpine.js](https://alpinejs.dev/) for interactive bits (modals, dropdowns, accordions, tabs, form behaviour). Add Alpine once in your meta partial or page `<head>`:
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
 ```
 
-Then in any partial:
+Use `x-*` attributes inside any partial:
 
 ```html
 <section x-data="{ open: false }">
@@ -165,14 +252,11 @@ Then in any partial:
 </section>
 ```
 
-Decision rule:
-
-- **Static composition / repetition / conditional rendering at build time** → tmpla
-- **Stateful UI / event handlers / runtime show-hide / fetched data** → Alpine
-
 Do not use Alpine to compose the page (use tmpla). Do not use tmpla for runtime state (use Alpine).
 
-## Runtime vs build — pick one per project
+---
+
+## Runtime vs build
 
 | Mode | Setup | Best for |
 |---|---|---|
@@ -182,6 +266,8 @@ Do not use Alpine to compose the page (use tmpla). Do not use tmpla for runtime 
 Layout source files must be **body fragments** (no `<html>` / `<body>` wrapper) so they expand correctly in both modes.
 
 For SEO-sensitive pages, always build before deploy. Crawlers other than Googlebot frequently do not run JavaScript, and social-preview crawlers (Twitter, Facebook, Slack) never do.
+
+---
 
 ## Build CLI
 
@@ -193,29 +279,39 @@ npx @yjmtmtk/tmpla --help
 
 The CLI walks every `.html` file in the source tree (skipping `_*` files and directories), expands templates and slots recursively, and writes the result to the output directory. Other files are copied as-is.
 
-## Common pitfalls — read before debugging
+---
 
-1. **Forgot the `_` prefix**: a partial that is referenced by other pages but lives at e.g. `src/header.html` will be written to `dist/header.html`, leaking your shell. Rename to `_header.html` or move into `_partials/`.
+## Pitfalls — read before debugging
 
-2. **Wrong relative path in a layout**: a layout in `_layouts/` calling `<template src="_partials/x.html">` resolves to `_layouts/_partials/x.html` (which doesn't exist). Use `../_partials/x.html`.
+1. **Started phase 2 too early.** If sub-agents are producing visually inconsistent sections, your skeleton wasn't done. Stop, finish phase 1, restart phase 2.
 
-3. **Double quotes inside `params`**: the attribute uses `"…"`, so use **single quotes** for strings inside (`params="{ title: 'Home' }"`). If you must mix, swap the attribute to single quotes (`params='{ "title": "Home" }'`).
+2. **Sub-agent invented a new primitive.** This silently breaks visual consistency. Audit `_partials/` for new shape files added during phase 2; revert them and escalate to phase 1.5 instead.
 
-4. **`<title>` / `<meta og:*>` in a head partial when running in runtime mode**: SNS crawlers and the first wave of Google's index don't run JS, so they will see no title and no description. Either build, or keep these tags inline in the page.
+3. **Forgot the `_` prefix.** A partial referenced by other pages but living at `src/header.html` will be written to `dist/header.html`, leaking your shell. Rename or move into `_partials/`.
 
-5. **Strict CSP without `'unsafe-eval'`**: the runtime evaluates `params` via `new Function`. If the deployment forbids `'unsafe-eval'`, switch to build mode — the output HTML contains no template syntax and needs no runtime.
+4. **Wrong relative path in a layout.** A layout in `_layouts/` calling `<template src="_partials/x.html">` resolves to `_layouts/_partials/x.html` (which doesn't exist). Use `../_partials/x.html`.
 
-6. **`<slot name="head">` inside a body-fragment layout**: `<slot>` only fills where it sits in the DOM. To inject head content per-page, write it directly in the page's `<head>` rather than relying on the layout.
+5. **Double quotes inside `params`.** The attribute uses `"…"`, so use **single quotes** for strings inside (`params="{ title: 'Home' }"`).
 
-## Parallelism playbook
+6. **`<title>` / `<meta og:*>` in a head partial when running in runtime mode.** SNS crawlers and Google's first wave don't run JS, so they will see no title and no description. Either build, or keep these tags inline in the page.
 
-When asked to add a new page or update many sections at once, prefer parallel edits over a single long file rewrite:
+7. **Strict CSP without `'unsafe-eval'`.** The runtime evaluates `params` via `new Function`. If the deployment forbids `'unsafe-eval'`, switch to build mode — the output HTML contains no template syntax and needs no runtime.
 
-1. Decide on the page's section list (e.g. hero, features, pricing, faq, cta).
-2. Generate (or update) each section as a separate file under `_partials/`.
-3. Compose them in the page's `<template src="_layouts/…">` block.
+8. **`<slot name="head">` inside a body-fragment layout.** `<slot>` only fills where it sits in the DOM. To inject head content per-page, write it directly in the page's `<head>`.
 
-When using a multi-tool environment, dispatch one tool call per section partial and run them concurrently.
+9. **Runtime + Alpine timing.** Alpine auto-initializes before tmpla finishes expanding body templates, so x-data inside expanded content is missed. Pattern:
+
+   ```html
+   <script src="../tmpla.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
+   <script>
+     tmpla.start(() => window.Alpine && Alpine.initTree(document.body));
+   </script>
+   ```
+
+   In build mode, Alpine attributes are pre-rendered into the static HTML and Alpine inits normally — no coordination needed.
+
+---
 
 ## Quick command reference
 
