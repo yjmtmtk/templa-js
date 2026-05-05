@@ -1,5 +1,5 @@
 {
-  "name": "tmpla",
+  "name": "@yjmtmtk/tmpla",
   "version": "0.0.1",
   "description": "A tiny HTML template loader using <template src>. Read as tempura.",
   "main": "tmpla.js",
@@ -26,7 +26,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yjmtmtk/tmpla.git"
+    "url": "git+https://github.com/yjmtmtk/tmpla.git"
   },
   "bugs": {
     "url": "https://github.com/yjmtmtk/tmpla/issues"
