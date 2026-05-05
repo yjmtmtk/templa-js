@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <template src="_partials/head.html" params="{ title: 'tmpla demo' }"></template>
+</head>
+<body>
+  <template
+    src="_partials/header.html"
+    params="{ title: 'tmpla 🍤', loggedIn: true, user: 'Alice' }"
+  ></template>
+
+  <main style="max-width: 640px; margin: 2rem auto; font-family: system-ui;">
+    <h2>What is tmpla?</h2>
+    <p>A tiny HTML template loader using the native <code>&lt;template src&gt;</code> element.</p>
+    <p>This page is composed from <code>head.html</code>, <code>header.html</code>, and <code>footer.html</code>.</p>
+  </main>
+
+  <template src="_partials/footer.html" params="{ year: 2026 }"></template>
+
+  <script src="../tmpla.js"></script>
+  <script>tmpla.start(() => console.log('All templates mounted.'));</script>
+</body>
+</html>

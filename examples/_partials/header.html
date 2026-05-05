@@ -1,0 +1,9 @@
+<header>
+  <strong>{{title}}</strong>
+  {{#if loggedIn}}
+    <span>Hi, {{user}}!</span>
+    <a href="#logout">Logout</a>
+  {{else}}
+    <a href="#login">Login</a>
+  {{/if}}
+</header>

@@ -1,0 +1,35 @@
+{
+  "name": "tmpla",
+  "version": "0.0.1",
+  "description": "A tiny HTML template loader using <template src>. Read as tempura.",
+  "main": "tmpla.js",
+  "bin": {
+    "tmpla": "bin/tmpla.js"
+  },
+  "files": [
+    "tmpla.js",
+    "bin/",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "template",
+    "html",
+    "loader",
+    "include",
+    "partial",
+    "vanilla",
+    "handlebars",
+    "tempura"
+  ],
+  "author": "yjmtmtk",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yjmtmtk/tmpla.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yjmtmtk/tmpla/issues"
+  },
+  "homepage": "https://github.com/yjmtmtk/tmpla#readme"
+}
