@@ -11,12 +11,11 @@
  *   <script>templa.start();</script>
  *
  * Passing data:
- *   - Every attribute on <template> becomes a string data key, except the
- *     reserved set: src, slot, if, unless, data-params.
- *   - data-params holds an optional JS object literal with typed values
- *     (numbers, booleans, arrays, objects); it overrides string attrs.
+ *   - Every attribute on <template> becomes a string data key, except
+ *     src/slot/if/unless (reserved) and data-* attributes (skipped as
+ *     metadata convention).
  *
- *     <template src="card.html" title="Tiny" data-params="{ count: 3 }"></template>
+ *     <template src="card.html" title="Tiny" body="Light"></template>
  *
  * Syntax:
  *   {{key}}                       HTML-escaped variable
@@ -187,18 +186,14 @@ const templa = (() => {
     return html;
   };
 
-  // Every attribute is a string data key, except the reserved set below.
-  // data-params (a JS object literal) merges last and overrides string attrs.
-  const RESERVED = new Set(['src', 'slot', 'if', 'unless', 'data-params']);
+  // Every attribute is a string data key, except: src/slot/if/unless are
+  // reserved, and any data-* attribute is treated as metadata (skipped).
+  const RESERVED = new Set(['src', 'slot', 'if', 'unless']);
   const collectData = el => {
     const data = {};
     for (const a of el.attributes) {
-      if (!RESERVED.has(a.name)) data[a.name] = a.value;
-    }
-    const dp = el.getAttribute('data-params');
-    if (dp) {
-      try { Object.assign(data, new Function(`return (${dp})`)()); }
-      catch (e) { console.error('[templa] bad data-params:', dp, e); }
+      if (RESERVED.has(a.name) || a.name.startsWith('data-')) continue;
+      data[a.name] = a.value;
     }
     return data;
   };

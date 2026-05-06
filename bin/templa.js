@@ -11,8 +11,8 @@
  * by inlining the referenced partial. Supports the same syntax as the
  * runtime: {{key}}, {{{key}}}, <template if="key">…</template>,
  * <template unless="key">…</template>, plus Web Components-style <slot>
- * for layouts. Data is passed by regular HTML attributes;
- * data-params="{ ... }" is the typed escape hatch.
+ * for layouts. Data is passed by plain HTML attributes (data-* attrs
+ * are reserved as metadata and skipped).
  *
  * Convention: files and directories starting with "_" are treated as
  * partials and are never written to the output directory. Reference
@@ -48,9 +48,9 @@ function getAttr(attrs, name) {
   return sq ? sq[1] : null;
 }
 
-// Every attribute is a string data key, except the reserved set below.
-// data-params (a JS object literal) merges last and overrides string attrs.
-const RESERVED = new Set(['src', 'slot', 'if', 'unless', 'data-params']);
+// Every attribute is a string data key, except: src/slot/if/unless are
+// reserved, and any data-* attribute is treated as metadata (skipped).
+const RESERVED = new Set(['src', 'slot', 'if', 'unless']);
 const ATTR = /(\w[\w:.-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'))?/g;
 
 // ─── co-located styles via <style data-merge="..."> ─────────────────
@@ -97,13 +97,8 @@ function collectData(attrs) {
   let m;
   while ((m = ATTR.exec(attrs))) {
     const name = m[1];
-    if (RESERVED.has(name)) continue;
+    if (RESERVED.has(name) || name.startsWith('data-')) continue;
     data[name] = m[2] ?? m[3] ?? '';
-  }
-  const dp = getAttr(attrs, 'data-params');
-  if (dp) {
-    try { Object.assign(data, new Function(`return (${dp})`)()); }
-    catch (e) { console.error('[templa] bad data-params:', dp, e.message); }
   }
   return data;
 }
@@ -338,7 +333,6 @@ Template syntax:
 
 Passing data:
   <template src="card.html" title="Tiny" body="Light, ~3KB."></template>
-  <template src="list.html" data-params="{ count: 3, items: ['a','b','c'] }"></template>
 
 Layouts (Web Components-style slots):
   <!-- _layouts/main.html -->

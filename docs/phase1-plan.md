@@ -15,7 +15,7 @@ Phase 1 is the serial part of building a templa site. It locks down design token
 1. **Do not create or modify any file.** Output the plan only. The user reviews and approves before any implementation step.
 2. **Do not run any build, `npm`, or shell command.** This is a planning step.
 3. **Default to the canonical primitive kit** — `hero`, `sub-hero`, `card`. Add a new primitive only when the brief unambiguously needs one (e.g., a testimonial-heavy site genuinely needs `testimonial-card`). Each addition is a cost, not a default.
-4. **Honor templa conventions.** Layouts are body fragments (no `<html>` / `<body>`). Partials receive data via regular HTML attributes; `data-params="{ ... }"` is the typed escape hatch only. Shape primitives ship with co-located `<style data-merge="style.css">` blocks.
+4. **Honor templa conventions.** Layouts are body fragments (no `<html>` / `<body>`). Partials receive data via plain HTML attributes; `data-*` attributes are reserved as metadata and skipped. Shape primitives ship with co-located `<style data-merge="style.css">` blocks.
 5. **If something in the brief is ambiguous, list it under "Open questions" at the end of the plan.** Do not invent and do not guess silently.
 
 ## Input you will receive

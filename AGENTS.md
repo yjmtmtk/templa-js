@@ -78,7 +78,7 @@ Sub-agents may:
 
 - Edit one page's body — slot fillers between `<template src="_layouts/...">` tags.
 - Create a new page by composing existing shapes.
-- Pass data to shape partials by adding regular attributes (`title="..." body="..."`); fall back to `data-params="{ ... }"` for typed values. See the Syntax reference.
+- Pass data to shape partials by adding regular attributes (`title="..." body="..."`). Conditionals are existence-based, so any non-empty string is truthy. See the Syntax reference.
 - Write page-specific copy and small page-specific styles inline.
 
 Sub-agents must **not**:
@@ -201,15 +201,11 @@ Reserved attributes — these are NOT collected as data:
 |---|---|
 | `src` | path of the partial to fetch |
 | `slot` | slot filler name (see Layouts) |
-| `data-params` | typed-value escape hatch; see below |
+| `if` / `unless` | existence-based conditional markers (see Conditionals below) |
 
-For values that aren't strings (numbers, booleans, arrays, objects, computed values), use the **`data-params` escape hatch** — a JS object literal that merges into the data and overrides any same-named string attribute:
+Any `data-*` attribute on a `<template>` is also skipped from data collection — it's reserved as HTML metadata convention.
 
-```html
-<template src="_partials/list.html"
-          title="Featured"
-          data-params="{ count: 3, items: ['a', 'b', 'c'] }"></template>
-```
+Strings handle every common case. For conditionals, the value is checked existentially (truthy unless empty), so `featured="yes"` is enough. There's no typed-value escape hatch in the core; if a project needs typed values (numbers, booleans, arrays, objects, computed values), that goes through a plugin.
 
 A few patterns to avoid (they are silently ignored):
 
@@ -217,8 +213,11 @@ A few patterns to avoid (they are silently ignored):
 <!-- Vue/Alpine binding prefix — not recognized by templa. -->
 <template src="x.html" :params="{ ... }"></template>
 
-<!-- Pre-0.2.0 syntax — REMOVED. Use multi-attribute or data-params instead. -->
+<!-- Pre-0.2.0 syntax — REMOVED. Use multi-attribute. -->
 <template src="x.html" params="{ ... }"></template>
+
+<!-- Pre-0.5.0 typed escape — REMOVED. data-* attributes are now metadata. -->
+<template src="x.html" data-params="{ count: 3 }"></template>
 ```
 
 ### Variables in templates
@@ -355,9 +354,9 @@ The CLI walks every `.html` file in the source tree (skipping `_*` files and dir
 
 4. **Wrong relative path in a layout.** A layout in `_layouts/` calling `<template src="_partials/x.html">` resolves to `_layouts/_partials/x.html` (which doesn't exist). Use `../_partials/x.html`.
 
-5. **`{{key}}` placeholders surviving into the output as literal text.** The partial received no value for that key. Pass it as a regular attribute (`title="Home"`), or for typed values use `data-params="{ count: 3 }"`. The pre-0.2.0 `params="{ ... }"` form has been removed.
+5. **`{{key}}` placeholders surviving into the output as literal text.** The partial received no value for that key. Pass it as a regular attribute (`title="Home"`). The pre-0.2.0 `params="{ ... }"` and pre-0.5.0 `data-params="{ ... }"` forms have been removed; all data flows through plain attributes.
 
-6. **Single quotes inside `data-params`.** The attribute uses `"…"`, so use **single quotes** for strings inside (`data-params="{ name: 'Ada' }"`). If you need single quotes inside the value, switch to `data-params='{ name: "Ada" }'`.
+6. **Conditional that always renders or never renders.** `<template if>` is existence-based and any non-empty string is truthy, including the literal string `"false"`. Omit the attribute (or set it to empty `""`) to express "no". For inverse, use `<template unless="key">`.
 
 7. **`<title>` / `<meta og:*>` in a head partial when running in runtime mode.** SNS crawlers and Google's first wave don't run JS, so they will see no title and no description. Either build, or keep these tags inline in the page.
 

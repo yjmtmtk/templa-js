@@ -13,7 +13,7 @@ It works in two modes:
 ```html
 <!-- index.html -->
 <body>
-  <template src="_partials/header.html" title="Home" data-params="{ loggedIn: true }"></template>
+  <template src="_partials/header.html" title="Home" loggedIn="yes"></template>
   <main>...</main>
   <template src="_partials/footer.html"></template>
 
@@ -86,17 +86,15 @@ Then call `templa.start()` to expand all of them:
 
 ### Passing data
 
-Each attribute on the calling `<template>` becomes a string-valued data key inside the partial. For typed values (numbers, booleans, arrays, objects), use the `data-params` escape hatch — a JS object literal that overrides individual attributes.
+Each attribute on the calling `<template>` becomes a string-valued data key inside the partial.
 
 ```html
-<!-- Common case: regular attributes -->
 <template src="_partials/card.html" title="Hello" body="Welcome."></template>
-
-<!-- Typed values via data-params -->
-<template src="_partials/card.html" title="Hello" data-params="{ count: 3, featured: true }"></template>
 ```
 
-Reserved attributes — these are not collected as data: `src` (the partial path), `slot` (slot filler name), `data-params` (typed escape hatch).
+Conditionals (`<template if="key">`) are existence-based, so any non-empty string is truthy — `featured="yes"` is enough to enable a block.
+
+Reserved attributes — these are not collected as data: `src` (the partial path), `slot` (slot filler name), `if` / `unless` (conditional markers). Any `data-*` attribute is also skipped, by HTML metadata convention.
 
 ### Template syntax
 
@@ -208,17 +206,12 @@ await templa.run('#my-region template[src]');
 
 ## Content Security Policy
 
-The runtime evaluates the `data-params` attribute with `new Function()`, so a strict CSP must allow `'unsafe-eval'` if you use it. Plain string attributes don't trigger this.
+The runtime never calls `eval` or `new Function`. There is no `'unsafe-eval'` requirement; a plain `script-src 'self'` works.
 
-```
-script-src 'self' 'unsafe-eval';
-```
-
-If you need a strict CSP without `'unsafe-eval'`, use the **build CLI** (`npx @yjmtmtk/templa build`) to pre-render your templates. The resulting HTML contains no template syntax, so the runtime is not needed at all.
+For pages that don't need a runtime at all, build with `npx @yjmtmtk/templa build` — the output is plain HTML with no template syntax left.
 
 ## Caveats
 
-- `data-params` is evaluated with `new Function()`. **Do not pass untrusted user input** as `data-params` — treat it the same as inline `<script>` code. Regular string attributes are safe.
 - `{{key}}` HTML-escapes its value. If you need to inject HTML, use `{{{key}}}` and make sure the value is trusted.
 - Original `<template src>` elements are removed from the DOM after expansion.
 - This project is in early development (0.0.x). API may change.
