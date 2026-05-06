@@ -65,6 +65,18 @@ It works in two modes:
 npm install @yjmtmtk/templa
 ```
 
+## Init
+
+Bootstrap a new project in the current directory:
+
+```bash
+npx @yjmtmtk/templa init           # minimal src/ tree
+npx @yjmtmtk/templa init --ai      # also write AGENTS.md and PLANNER.md
+npx @yjmtmtk/templa init --force   # overwrite existing files
+```
+
+The result is a buildable project: run `npx @yjmtmtk/templa build` immediately afterwards and `dist/` will be produced. The `--ai` flag adds two project-root markdown files that brief AI coding agents on templa's conventions and a planning prompt for site skeletons.
+
 ## Usage
 
 ### Basic
