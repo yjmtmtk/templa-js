@@ -26,11 +26,12 @@ It works in two modes:
 <!-- _partials/header.html -->
 <header>
   <h1>{{title}}</h1>
-  {{#if loggedIn}}
+  <template if="loggedIn">
     <a href="/logout">Logout</a>
-  {{else}}
+  </template>
+  <template unless="loggedIn">
     <a href="/login">Login</a>
-  {{/if}}
+  </template>
 </header>
 ```
 
@@ -40,7 +41,7 @@ It works in two modes:
 - **No dependencies** — pure vanilla JavaScript
 - **Standard HTML** — uses the native `<template>` element, not custom tags
 - **Tiny** — ~240 lines of source, ~3.5KB gzipped
-- **Familiar syntax** — Handlebars-style `{{var}}` / `{{#if}}` / `{{#unless}}`
+- **HTML-native** — `{{var}}` for values; `<template if>` / `<template unless>` for conditionals
 - **Recursive** — partials inside partials just work
 - **Resource-aware** — waits for `<link rel="stylesheet">` and `<script src>` inside partials before resolving
 
@@ -103,9 +104,8 @@ Reserved attributes — these are not collected as data: `src` (the partial path
 |---|---|
 | `{{key}}` | HTML-escaped variable |
 | `{{{key}}}` | Raw variable (no escape) — use only for trusted HTML |
-| `{{#if key}}...{{/if}}` | Rendered when `data[key]` is truthy |
-| `{{#if key}}...{{else}}...{{/if}}` | If/else |
-| `{{#unless key}}...{{/unless}}` | Rendered when `data[key]` is falsy |
+| `<template if="key">…</template>` | Block kept when `data[key]` is truthy |
+| `<template unless="key">…</template>` | Block kept when `data[key]` is falsy |
 
 Conditionals can be nested. Variables fall through unchanged when the key is missing from `data`.
 
@@ -294,6 +294,21 @@ Decision rule: tmpla for everything that can be resolved before the user clicks;
 ## Working with AI agents
 
 If you use Claude Code, Cursor, Aider, Copilot, or similar AI tools, drop [`AGENTS.md`](./AGENTS.md) into your project root. It teaches agents the file conventions, parallel-section pattern, and common pitfalls so they can edit a tmpla-based site without learning by mistake.
+
+## Philosophy
+
+tmpla is not trying to replace HTML. It exists because HTML does not yet have a native way to include partials, compose layouts, and pass small pieces of data between templates.
+
+**The biggest competitor is native HTML. That is also the goal.** If one day HTML supports this natively, tmpla has done its job. Until then, tmpla is a tiny bridge.
+
+Concrete consequences of that stance:
+
+- Attribute names follow the platform: `<template src>` mirrors `<img src>` / `<script src>` / `<iframe src>`. We deliberately don't use `data-src`. The bare `src` lets editors and IDEs treat it like a real file reference (path completion, jump-to-file, refactor-rename).
+- Conditionals are written as `<template if="key">…</template>` and `<template unless="key">…</template>` — no `{{#if}}` Mustache block, no expressions, no helpers. They are existence-based only.
+- Co-located styles use `data-merge="style.css"` — a `data-*` attribute, because that is HTML's documented hook for component-private metadata.
+- Anything beyond block-level conditionals (conditional attributes, dynamic class lists, loops) is out of scope for the core and lives in plugins.
+
+The core stays small enough to read in one sitting. Everything else is a plugin.
 
 ## License
 

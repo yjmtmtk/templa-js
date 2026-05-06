@@ -7,7 +7,7 @@ This file is for AI coding agents (Claude Code, Cursor, Aider, Copilot, etc.) ta
 tmpla is a tiny HTML template loader giving you:
 
 - `<template src="...">` to inline another HTML file
-- `{{var}}`, `{{#if}}/{{else}}/{{/if}}`, `{{#unless}}` for variables and conditionals
+- `{{var}}` for variables; `<template if="key">` / `<template unless="key">` for existence-based conditionals
 - `<slot>` and `<slot name="X">` for Web Components-style layouts
 - A build CLI (`npx @yjmtmtk/tmpla build`) that statically expands all of the above
 
@@ -257,12 +257,20 @@ When to use: any partial whose presence implies its own visual rules. Co-locatin
 ### Conditionals
 
 ```
-{{#if key}}…{{/if}}
-{{#if key}}…{{else}}…{{/if}}
-{{#unless key}}…{{/unless}}
+<template if="key">…</template>
+<template unless="key">…</template>
 ```
 
-Conditionals can be nested.
+**Existence-based only.** The value of `if`/`unless` is a single key looked up in the surrounding data. There are no expressions, no operators, no helpers, no `else`. If you need an else branch, write the inverse pair:
+
+```html
+<template if="loggedIn"><a href="/logout">Logout</a></template>
+<template unless="loggedIn"><a href="/login">Login</a></template>
+```
+
+Conditionals can be nested. Resolution iterates until stable.
+
+For **conditional attributes** (`disabled` on/off, `target="_blank"` only when external, etc.), tmpla core does not provide a built-in mechanism — that is intentional. Use a plugin (`@yjmtmtk/tmpla-plugin-attrs` or similar) when a project needs them. Keeping the core to existence-based block conditionals preserves the "tmpla looks like HTML the platform should ship" stance.
 
 ### Layouts and slots
 

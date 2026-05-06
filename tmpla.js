@@ -1,10 +1,9 @@
 /**
  * tmpla — HTML template loader (read as "tempura")
  *
- * Drops <template src="..."> elements into the DOM and expands them
- * client-side. Supports {{key}} variables, {{#if}} / {{#unless}}
- * conditionals, and Web Components-style <slot> for layouts.
- * Pure ES, zero dependencies.
+ * A small bridge to the HTML we should have. tmpla expands
+ * <template src="..."> elements into real markup, both at runtime in the
+ * browser and at build time via the CLI. Pure ES, zero dependencies.
  *
  * Usage:
  *   <template src="partials/header.html" title="Home"></template>
@@ -12,18 +11,21 @@
  *   <script>tmpla.start();</script>
  *
  * Passing data:
- *   - Every attribute on <template> is a string data key, except the
- *     reserved trio: src, slot, data-params.
+ *   - Every attribute on <template> becomes a string data key, except the
+ *     reserved set: src, slot, if, unless, data-params.
  *   - data-params holds an optional JS object literal with typed values
  *     (numbers, booleans, arrays, objects); it overrides string attrs.
  *
  *     <template src="card.html" title="Tiny" data-params="{ count: 3 }"></template>
  *
  * Syntax:
- *   {{key}}                              HTML-escaped variable
- *   {{{key}}}                            raw variable (no escape)
- *   {{#if key}}...{{else}}...{{/if}}     conditional
- *   {{#unless key}}...{{/unless}}        inverse conditional
+ *   {{key}}                       HTML-escaped variable
+ *   {{{key}}}                     raw variable (no escape)
+ *   <template if="key">…</template>      keep block when data[key] is truthy
+ *   <template unless="key">…</template>  keep block when data[key] is falsy
+ *
+ *   Conditionals are existence-based — no expressions, no helpers. For
+ *   conditional attributes, write a plugin.
  *
  * Layouts:
  *   <!-- _layouts/main.html -->
@@ -79,20 +81,9 @@ const tmpla = (() => {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-  const COND = /{{\s*#(if|unless)\s+(\w+)\s*}}((?:(?!{{\s*#(?:if|unless))[\s\S])*?)(?:{{\s*else\s*}}((?:(?!{{\s*#(?:if|unless))[\s\S])*?))?{{\s*\/\1\s*}}/g;
-
-  const render = (html, data) => {
-    let prev;
-    do {
-      prev = html;
-      html = html.replace(COND, (_, type, key, t, f = '') =>
-        (type === 'if' ? data[key] : !data[key]) ? t : f);
-    } while (html !== prev);
-
-    return html
-      .replace(/{{{\s*(\w+)\s*}}}/g, (m, k) => k in data ? data[k] : m)
-      .replace(/{{\s*(\w+)\s*}}/g, (m, k) => k in data ? esc(data[k]) : m);
-  };
+  const render = (html, data) => html
+    .replace(/{{{\s*(\w+)\s*}}}/g, (m, k) => k in data ? data[k] : m)
+    .replace(/{{\s*(\w+)\s*}}/g, (m, k) => k in data ? esc(data[k]) : m);
 
   const rebase = (html, baseUrl) => html.replace(
     /(<template\b[^>]*\bsrc\s*=\s*["'])([^"']+)/gi,
@@ -175,9 +166,30 @@ const tmpla = (() => {
     }
   );
 
-  // Every attribute is a string data key, except src / slot / data-params.
+  // <template if="key"> / <template unless="key"> — existence-based
+  // conditional blocks. Iterates until stable so nested conditionals resolve.
+  const applyConditionals = (html, data) => {
+    let prev;
+    do {
+      prev = html;
+      const blocks = findTemplateBlocks(html);
+      for (let i = blocks.length - 1; i >= 0; i--) {
+        const b = blocks[i];
+        const ifKey = getAttr(b.attrs, 'if');
+        const unlessKey = getAttr(b.attrs, 'unless');
+        if (ifKey !== null) {
+          html = html.slice(0, b.start) + (data[ifKey] ? b.inner : '') + html.slice(b.end);
+        } else if (unlessKey !== null) {
+          html = html.slice(0, b.start) + (!data[unlessKey] ? b.inner : '') + html.slice(b.end);
+        }
+      }
+    } while (html !== prev);
+    return html;
+  };
+
+  // Every attribute is a string data key, except the reserved set below.
   // data-params (a JS object literal) merges last and overrides string attrs.
-  const RESERVED = new Set(['src', 'slot', 'data-params']);
+  const RESERVED = new Set(['src', 'slot', 'if', 'unless', 'data-params']);
   const collectData = el => {
     const data = {};
     for (const a of el.attributes) {
@@ -194,12 +206,14 @@ const tmpla = (() => {
   const expand = async el => {
     const src = el.getAttribute('src');
     const url = new URL(src, location.href).href;
-    const slots = parseSlots(el.innerHTML);
     const data = collectData(el);
+    // Resolve conditionals in slot payload using this call's data so a slot
+    // filler can be wrapped in <template if="key">.
+    const slots = parseSlots(applyConditionals(el.innerHTML, data));
 
     const html = handleMergedStyles(await fetchText(url), url);
-    let out = render(rebase(html, url), data);
-    out = fillSlots(out, slots);
+    const conditional = applyConditionals(rebase(html, url), data);
+    let out = fillSlots(render(conditional, data), slots);
     const frag = document.createRange().createContextualFragment(out);
     const waits = [...frag.querySelectorAll('link[rel="stylesheet"], script[src]')]
       .map(r => new Promise(done => { r.onload = r.onerror = done; }));

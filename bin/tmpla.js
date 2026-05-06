@@ -9,10 +9,10 @@
  *
  * Build expands every <template src="..."> in your source HTML files
  * by inlining the referenced partial. Supports the same syntax as the
- * runtime: {{key}}, {{{key}}}, {{#if}}/{{else}}/{{/if}}, {{#unless}},
- * plus Web Components-style <slot> for layouts. Data is passed by
- * regular HTML attributes; data-params="{ ... }" is the typed escape
- * hatch.
+ * runtime: {{key}}, {{{key}}}, <template if="key">…</template>,
+ * <template unless="key">…</template>, plus Web Components-style <slot>
+ * for layouts. Data is passed by regular HTML attributes;
+ * data-params="{ ... }" is the typed escape hatch.
  *
  * Convention: files and directories starting with "_" are treated as
  * partials and are never written to the output directory. Reference
@@ -34,15 +34,7 @@ const escHtml = s => String(s)
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
 
-const COND = /{{\s*#(if|unless)\s+(\w+)\s*}}((?:(?!{{\s*#(?:if|unless))[\s\S])*?)(?:{{\s*else\s*}}((?:(?!{{\s*#(?:if|unless))[\s\S])*?))?{{\s*\/\1\s*}}/g;
-
 function render(html, data) {
-  let prev;
-  do {
-    prev = html;
-    html = html.replace(COND, (_, type, key, t, f = '') =>
-      (type === 'if' ? data[key] : !data[key]) ? t : f);
-  } while (html !== prev);
   return html
     .replace(/{{{\s*(\w+)\s*}}}/g, (m, k) => k in data ? data[k] : m)
     .replace(/{{\s*(\w+)\s*}}/g, (m, k) => k in data ? escHtml(data[k]) : m);
@@ -56,9 +48,9 @@ function getAttr(attrs, name) {
   return sq ? sq[1] : null;
 }
 
-// Every attribute is a string data key, except src / slot / data-params.
+// Every attribute is a string data key, except the reserved set below.
 // data-params (a JS object literal) merges last and overrides string attrs.
-const RESERVED = new Set(['src', 'slot', 'data-params']);
+const RESERVED = new Set(['src', 'slot', 'if', 'unless', 'data-params']);
 const ATTR = /(\w[\w:.-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'))?/g;
 
 // ─── co-located styles via <style data-merge="..."> ─────────────────
@@ -180,6 +172,27 @@ function fillSlots(html, slots) {
   );
 }
 
+// <template if="key"> / <template unless="key"> — existence-based conditional
+// blocks. Iterates until stable so nested conditionals resolve.
+function applyConditionals(html, data) {
+  let prev;
+  do {
+    prev = html;
+    const blocks = findTemplateBlocks(html);
+    for (let i = blocks.length - 1; i >= 0; i--) {
+      const b = blocks[i];
+      const ifKey = getAttr(b.attrs, 'if');
+      const unlessKey = getAttr(b.attrs, 'unless');
+      if (ifKey !== null) {
+        html = html.slice(0, b.start) + (data[ifKey] ? b.inner : '') + html.slice(b.end);
+      } else if (unlessKey !== null) {
+        html = html.slice(0, b.start) + (!data[unlessKey] ? b.inner : '') + html.slice(b.end);
+      }
+    }
+  } while (html !== prev);
+  return html;
+}
+
 // ─── recursive expansion ─────────────────────────────────────────────
 function expand(html, baseDir, depth = 0) {
   if (depth > MAX_DEPTH) {
@@ -197,8 +210,10 @@ function expand(html, baseDir, depth = 0) {
     if (src) {
       const data = collectData(b.attrs);
 
-      // Expand any partials inside the slot payload first, in *this* dir
-      const expandedPayload = expand(b.inner, baseDir, depth + 1);
+      // Resolve conditionals in the slot payload first (using this call's
+      // data), then recursively expand any partials inside it.
+      const conditionalPayload = applyConditionals(b.inner, data);
+      const expandedPayload = expand(conditionalPayload, baseDir, depth + 1);
       const slots = parseSlots(expandedPayload);
 
       const partialPath = path.resolve(baseDir, src);
@@ -206,6 +221,7 @@ function expand(html, baseDir, depth = 0) {
       if (fs.existsSync(partialPath)) {
         content = fs.readFileSync(partialPath, 'utf8');
         content = extractMergedStyles(content, partialPath);
+        content = applyConditionals(content, data);
         content = render(content, data);
         content = fillSlots(content, slots);
         content = expand(content, path.dirname(partialPath), depth + 1);
@@ -315,10 +331,10 @@ Convention:
   <template src="_partials/header.html"></template>.
 
 Template syntax:
-  {{key}}                              HTML-escaped variable
-  {{{key}}}                            raw variable
-  {{#if key}}...{{else}}...{{/if}}     conditional
-  {{#unless key}}...{{/unless}}        inverse conditional
+  {{key}}                            HTML-escaped variable
+  {{{key}}}                          raw variable
+  <template if="key">…</template>    keep block when data[key] is truthy
+  <template unless="key">…</template> keep block when data[key] is falsy
 
 Passing data:
   <template src="card.html" title="Tiny" body="Light, ~3KB."></template>
