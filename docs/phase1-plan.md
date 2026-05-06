@@ -48,7 +48,7 @@ For each page, produce **both**:
 
 (a) A small ASCII wireframe showing the visual structure top-to-bottom, including grid arrangements (e.g. cards in 3 columns), and labelling each section. Keep it readable — boxes drawn with `┌─┬─┐` style, ~40–60 chars wide. Show the layout chrome (header, footer) so the sub-agent sees the full page envelope.
 
-(b) A concise section list under the wireframe with one-line notes per section (purpose, primitive used if any, params it will take).
+(b) A concise section list under the wireframe with one-line notes per section (purpose, primitive used if any, attributes it accepts).
 
 Example for a home page:
 
@@ -78,7 +78,7 @@ Example for a home page:
 ```
 
 Sections (top → bottom):
-- hero — primitive, params: image / heading / subheading / ctaLabel / ctaHref
+- hero — primitive, attrs: image / heading / subheading / ctaLabel / ctaHref. Optional fields wrapped in `<template if="ctaLabel">` inside the primitive.
 - "A few favourites" — section with `<h2>` + card-grid of 3 card primitives
 - "Questions" — inline Alpine accordion (no primitive; lives only on this page)
 
@@ -94,7 +94,7 @@ From the section list, infer which shape primitives are needed.
 
 If a non-default section type recurs across two or more pages (testimonials, blog post snippets, team members, menu items, pricing rows), promote it to a new primitive. Otherwise inline it in the single page that needs it.
 
-For each primitive, name the pages and sections that consume it.
+For each primitive, name the pages and sections that consume it. If a primitive has optional fields (e.g. `ctaLabel`, `image`, `price`), the primitive's HTML wraps them in `<template if="key">…</template>` so an unspecified attribute simply omits that markup.
 
 ### 5. Decide design tokens
 
@@ -176,7 +176,7 @@ This is the gate that separates Phase 1 from Phase 2. Phase 2 sub-agents must no
 │ FOOTER                               │
 └──────────────────────────────────────┘
 ```
-- hero — primitive, params image/heading/subheading/cta
+- hero — primitive, attrs image/heading/subheading/ctaLabel/ctaHref
 - card grid (×3) — uses card primitive
 - faq — inline Alpine accordion
 
@@ -193,7 +193,7 @@ This is the gate that separates Phase 1 from Phase 2. Phase 2 sub-agents must no
 │ FOOTER                               │
 └──────────────────────────────────────┘
 ```
-- sub-hero — primitive, params title/tagline
+- sub-hero — primitive, attrs title/tagline
 - prose — `<article class="prose">` with 4 paragraphs and 1 image
 
 ## 4. Primitive kit
