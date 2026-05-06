@@ -357,8 +357,10 @@ function listScaffoldFiles() {
 
 function init(args) {
   let withAi = false;
+  let force = false;
   for (const arg of args) {
     if (arg === '--ai') withAi = true;
+    else if (arg === '--force') force = true;
     else {
       console.error(`Unknown init option: ${arg}\n`);
       help();
@@ -388,7 +390,7 @@ function init(args) {
   console.log(`  cwd: ${cwd}`);
   console.log('');
 
-  if (conflicts.length > 0) {
+  if (!force && conflicts.length > 0) {
     console.error(`  Refusing to overwrite existing files:`);
     for (const c of conflicts) console.error(`    ${c}`);
     console.error('');

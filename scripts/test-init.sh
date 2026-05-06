@@ -43,4 +43,10 @@ fi
 test -f src/index.html
 test -f AGENTS.md
 
+# --- --force must overwrite without complaint ---
+cd "$TMP2"
+node "$ROOT/bin/templa.js" init --ai --force >/dev/null
+test -f src/index.html
+test -f AGENTS.md
+
 echo "✓ init smoke test passed"
