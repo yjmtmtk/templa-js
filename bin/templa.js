@@ -407,6 +407,10 @@ function init(args) {
 
   console.log('');
   console.log(`✓ ${items.length} file(s) written`);
+  console.log('');
+  console.log('Next steps:');
+  console.log('  1. Open src/index.html in a browser to preview (runtime mode)');
+  console.log('  2. Run `npx @yjmtmtk/templa build` to produce ./dist');
 }
 
 // ─── entry ───────────────────────────────────────────────────────────
@@ -416,10 +420,16 @@ templa v${VERSION} — tiny HTML template loader
 
 Usage:
   templa build [-i <src>] [-o <dist>]
+  templa init [--ai] [--force]
 
-Options:
+Build options:
   -i <dir>      Source directory (default: ./src)
   -o <dir>      Output directory (default: ./dist)
+
+Init options:
+  --ai          Also write AGENTS.md and PLANNER.md (AI agent guides)
+  --force       Overwrite existing files
+
   -v, --version Show version
   -h, --help    Show this help
 

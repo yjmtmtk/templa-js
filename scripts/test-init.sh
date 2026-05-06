@@ -49,4 +49,8 @@ node "$ROOT/bin/templa.js" init --ai --force >/dev/null
 test -f src/index.html
 test -f AGENTS.md
 
+# --- --help must document init ---
+node "$ROOT/bin/templa.js" --help | grep -q "init \[--ai\] \[--force\]"
+node "$ROOT/bin/templa.js" --help | grep -q "AGENTS.md"
+
 echo "✓ init smoke test passed"
