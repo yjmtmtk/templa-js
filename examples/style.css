@@ -1,37 +1,24 @@
+/* ─── Base + chrome only.
+       Shape primitives (hero, sub-hero, card, faq) carry their own styles
+       in their _partials/*.html via <style data-merge="style.css">.
+       The build CLI dedupes and appends them here automatically. ─── */
+
 * { box-sizing: border-box; }
 body { margin: 0; background: #fafafa; color: #222; font-family: system-ui, sans-serif; line-height: 1.55; }
+
 header, footer { background: #111; color: #fff; padding: 1rem 1.5rem; }
 header { display: flex; align-items: baseline; gap: 1.5rem; }
 header nav a { color: #ffb; margin-left: 1rem; text-decoration: none; }
+
 main { max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
 section + section, .prose > * + * { margin-top: 1.25rem; }
+
 code, pre { background: #eee; border-radius: 3px; }
 code { padding: 0 .25em; }
 pre { padding: .75rem 1rem; overflow: auto; }
 
-/* Hero (landing-page primitive) */
-.hero h1 { margin: 0 0 .5rem; font-size: 2rem; }
-.hero p { margin: 0; color: #555; }
-
-/* Sub-hero (inner-page primitive) */
-.sub-hero { padding-bottom: 1.25rem; border-bottom: 1px solid #ddd; }
-.sub-hero h1 { margin: 0 0 .25rem; font-size: 1.5rem; }
-.sub-hero p { margin: 0; color: #666; font-size: .95rem; }
-
-/* Feature cards layout (the .card itself is styled in _partials/card.html) */
+/* Card grid layout (.card itself is styled co-located in _partials/card.html) */
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
-
-/* FAQ (Alpine accordion) */
-.faq-item { border-top: 1px solid #ddd; }
-.faq-item:last-child { border-bottom: 1px solid #ddd; }
-.faq-item button {
-  width: 100%; text-align: left; padding: .75rem 0;
-  background: none; border: none; font: inherit; cursor: pointer;
-  display: flex; justify-content: space-between; align-items: center;
-}
-.faq-item button::after { content: '+'; color: #888; font-weight: bold; }
-.faq-item.active button::after { content: '−'; }
-.faq-item div[x-show] { padding: 0 0 1rem; color: #555; }
 
 /* Active page highlight — declarative via [data-page] / [data-nav] */
 body[data-page="home"]  [data-nav="home"],

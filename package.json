@@ -1,6 +1,6 @@
 {
   "name": "@yjmtmtk/tmpla",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A tiny HTML template loader using <template src>. Read as tempura.",
   "main": "tmpla.js",
   "bin": {

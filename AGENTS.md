@@ -47,10 +47,10 @@ Building a coherent site requires **two distinct phases**, in order. Skipping or
 
 Lock down everything downstream sections will *consume*. **One agent in charge. No parallel work yet.**
 
-1. **Design tokens in `style.css`** — base typography, color scale, spacing scale, radius / shadow values. Every later style decision derives from these.
+1. **Design tokens + base + chrome in `style.css`** — base typography, color scale, spacing scale, radius / shadow values, plus document chrome that isn't a primitive (`<header>`, `<footer>`, layout grid helpers, etc.). **Shape-primitive rules do NOT live here** — they ship co-located inside each primitive's partial via `<style data-merge="style.css">` (see Syntax reference). The build merges them into `style.css` automatically.
 2. **Layout** — `_layouts/main.html` as a body fragment (no `<html>`/`<body>` wrapper) with `<header>`, the main `<slot>`, and `<footer>`.
 3. **Chrome partials** — `_partials/meta.html` (shared `<head>`), `_partials/nav.html`, anything else that appears identically on every page.
-4. **Shape primitives** — the visual building blocks every content section will reuse. A typical kit:
+4. **Shape primitives** — self-contained visual building blocks (HTML + co-located CSS in the same file). A typical kit:
 
    | Partial | Purpose |
    |---|---|
@@ -83,7 +83,8 @@ Sub-agents may:
 
 Sub-agents must **not**:
 
-- Touch `style.css` (design tokens / shape styles live there).
+- Touch `style.css` (design tokens, base, chrome — locked in phase 1).
+- Touch any primitive partial (the HTML *and* its co-located `<style data-merge>` are the contract).
 - Touch `_layouts/`.
 - Touch any shape primitive in `_partials/`.
 - Invent a new shape primitive. If a sub-agent decides one is needed, **stop, escalate to the orchestrator** for a brief phase 1.5 (extend the skeleton serially), then resume phase 2.
@@ -106,7 +107,8 @@ The **sub-hero** pattern is the canonical example. Define it once in phase 1; ev
 src/
 ├── index.html              ← entry page (written to dist/)
 ├── about.html              ← entry page
-├── style.css               ← design tokens + shape styles (touched only in phase 1)
+├── style.css               ← design tokens + base + chrome (phase 1 only;
+                              primitive rules are co-located in their partials)
 ├── _layouts/               ← layouts (skipped from output)
 │   └── main.html
 └── _partials/              ← partials (skipped from output)
@@ -168,7 +170,11 @@ Every page is a thin composition. Sections and primitives are partials.
 ```
 
 ```html
-<!-- src/_partials/card.html — focused, parameterized -->
+<!-- src/_partials/card.html — focused, parameterized, self-styling -->
+<style data-merge="style.css">
+  .card { background: #fff; border: 1px solid #ddd; padding: 1rem; }
+  .card h3 { margin: 0 0 .5rem; }
+</style>
 <article class="card">
   <h3>{{title}}</h3>
   <p>{{body}}</p>

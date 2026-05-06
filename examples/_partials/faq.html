@@ -1,3 +1,15 @@
+<style data-merge="style.css">
+  .faq-item { border-top: 1px solid #ddd; }
+  .faq-item:last-child { border-bottom: 1px solid #ddd; }
+  .faq-item button {
+    width: 100%; text-align: left; padding: .75rem 0;
+    background: none; border: none; font: inherit; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .faq-item button::after { content: '+'; color: #888; font-weight: bold; }
+  .faq-item.active button::after { content: '−'; }
+  .faq-item div[x-show] { padding: 0 0 1rem; color: #555; }
+</style>
 <section class="faq" x-data="{ open: null }">
   <h2>FAQ</h2>
 
