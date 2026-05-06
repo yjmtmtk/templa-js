@@ -332,6 +332,55 @@ function build(args) {
   console.log(`✓ ${stats.files} page(s), ${stats.copied} asset(s), ${stats.partials} partial(s) skipped — ${ms}ms`);
 }
 
+// ─── init command ────────────────────────────────────────────────────
+const PKG_ROOT = path.resolve(__dirname, '..')
+
+function listScaffoldFiles() {
+  const items = []
+  const scaffoldRoot = path.join(PKG_ROOT, 'scaffold')
+
+  const walk = (dir, relBase) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name.startsWith('.')) continue
+      const abs = path.join(dir, entry.name)
+      const rel = relBase ? `${relBase}/${entry.name}` : entry.name
+      if (entry.isDirectory()) walk(abs, rel)
+      else items.push({ src: abs, dest: rel })
+    }
+  }
+  walk(scaffoldRoot, '')
+
+  // templa.js lives at the package root; init places it at src/js/templa.js
+  items.push({ src: path.join(PKG_ROOT, 'templa.js'), dest: 'src/js/templa.js' })
+  return items
+}
+
+function init(args) {
+  const cwd = process.cwd()
+  const items = listScaffoldFiles()
+
+  for (const { src } of items) {
+    if (!fs.existsSync(src)) {
+      console.error(`Internal error: templa installation appears broken at ${src}`)
+      process.exit(1)
+    }
+  }
+
+  console.log(`templa init`)
+  console.log(`  cwd: ${cwd}`)
+  console.log('')
+
+  for (const { src, dest } of items) {
+    const destAbs = path.join(cwd, dest)
+    fs.mkdirSync(path.dirname(destAbs), { recursive: true })
+    fs.copyFileSync(src, destAbs)
+    console.log(`  ${dest}`)
+  }
+
+  console.log('')
+  console.log(`✓ ${items.length} file(s) written`)
+}
+
 // ─── entry ───────────────────────────────────────────────────────────
 function help() {
   process.stdout.write(`
@@ -381,6 +430,7 @@ Layouts (Web Components-style slots):
 const [, , cmd, ...rest] = process.argv;
 switch (cmd) {
   case 'build': build(rest); break;
+  case 'init': init(rest); break;
   case '-v': case '--version': console.log(VERSION); break;
   case '-h': case '--help': case undefined: help(); break;
   default:
