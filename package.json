@@ -12,6 +12,7 @@
   "files": [
     "templa.js",
     "bin/",
+    "scaffold/",
     "README.md",
     "AGENTS.md",
     "PLANNER.md",
