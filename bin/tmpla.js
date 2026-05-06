@@ -61,6 +61,44 @@ function getAttr(attrs, name) {
 const RESERVED = new Set(['src', 'slot', 'data-params']);
 const ATTR = /(\w[\w:.-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'))?/g;
 
+// ─── co-located styles via <style data-merge="..."> ─────────────────
+// First time a partial is processed, its merge styles are extracted and
+// queued for the target file. Subsequent expansions of the same partial
+// drop the styles silently. Flushed to disk after the source walk.
+const STYLE_MERGE = /<style\s+([^>]*?)data-merge\s*=\s*["']([^"']+)["']([^>]*)>([\s\S]*?)<\/style>\s*/gi;
+const STYLE_MERGE_STRIP = /<style\b[^>]*\bdata-merge\b[^>]*>[\s\S]*?<\/style>\s*/gi;
+const mergedTargets = new Map();   // target path -> [css, ...]
+const mergedSeen = new Set();      // partial path -> already extracted
+
+function extractMergedStyles(html, partialPath) {
+  if (mergedSeen.has(partialPath)) return html.replace(STYLE_MERGE_STRIP, '');
+  let any = false;
+  const out = html.replace(STYLE_MERGE, (_, _pre, target, _post, body) => {
+    any = true;
+    const t = target.trim();
+    if (!mergedTargets.has(t)) mergedTargets.set(t, []);
+    mergedTargets.get(t).push(body.trim());
+    return '';
+  });
+  if (any) mergedSeen.add(partialPath);
+  return out;
+}
+
+function flushMergedStyles(distDir) {
+  for (const [target, blocks] of mergedTargets) {
+    const file = path.join(distDir, target);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    const merged = blocks.join('\n\n');
+    if (fs.existsSync(file)) {
+      fs.appendFileSync(file, '\n\n/* tmpla merged */\n' + merged + '\n');
+    } else {
+      fs.writeFileSync(file, merged + '\n');
+    }
+  }
+  mergedTargets.clear();
+  mergedSeen.clear();
+}
+
 function collectData(attrs) {
   const data = {};
   ATTR.lastIndex = 0;
@@ -167,6 +205,7 @@ function expand(html, baseDir, depth = 0) {
       let content = '';
       if (fs.existsSync(partialPath)) {
         content = fs.readFileSync(partialPath, 'utf8');
+        content = extractMergedStyles(content, partialPath);
         content = render(content, data);
         content = fillSlots(content, slots);
         content = expand(content, path.dirname(partialPath), depth + 1);
@@ -249,6 +288,7 @@ function build(args) {
 
   const t0 = Date.now();
   const stats = walk(SRC, DIST);
+  flushMergedStyles(DIST);
   const ms = Date.now() - t0;
 
   console.log('');

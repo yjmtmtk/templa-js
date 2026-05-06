@@ -39,7 +39,7 @@ It works in two modes:
 - **No build step** — drop in a `<script>` tag
 - **No dependencies** — pure vanilla JavaScript
 - **Standard HTML** — uses the native `<template>` element, not custom tags
-- **Tiny** — ~200 lines of source, ~3KB gzipped
+- **Tiny** — ~240 lines of source, ~3.5KB gzipped
 - **Familiar syntax** — Handlebars-style `{{var}}` / `{{#if}}` / `{{#unless}}`
 - **Recursive** — partials inside partials just work
 - **Resource-aware** — waits for `<link rel="stylesheet">` and `<script src>` inside partials before resolving
@@ -170,6 +170,22 @@ Partials can include other partials. `tmpla` keeps expanding until no `<template
 `<template src>` inside a partial is resolved relative to **that partial's URL**, not the page. So `_partials/layout.html` can reference `<template src="./header.html">` and it will resolve to `_partials/header.html` correctly.
 
 Other resources (`<img src>`, `<link href>`, `<script src>`) still resolve against the page URL — use absolute or root-relative paths for those.
+
+### Co-located styles
+
+A partial can carry its own CSS in a `<style>` block tagged with `data-merge="<file>"`. The build CLI extracts it once per partial and appends it to the named output stylesheet — even if the partial is used 100 times, its rules are written exactly once.
+
+```html
+<!-- _partials/card.html -->
+<style data-merge="style.css">
+  .card { background: #fff; border: 1px solid #ddd; padding: 1rem; }
+</style>
+<article class="card">
+  <h3>{{title}}</h3>
+</article>
+```
+
+At runtime, the same dedupe applies: the `<style>` block stays in the DOM for the first expansion of a given partial and is stripped on subsequent ones. A `<style>` without `data-merge` is treated as plain inline CSS (existing behaviour).
 
 ### Caching and recursion
 

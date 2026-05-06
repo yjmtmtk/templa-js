@@ -224,6 +224,30 @@ Once data is passed in, partials read it with these placeholders:
 {{{key}}}      raw variable (use only for trusted HTML)
 ```
 
+### Co-located styles (`<style data-merge="...">`)
+
+A partial can carry its own CSS in a `<style>` block tagged with `data-merge="<file>"`. tmpla extracts it once per partial and appends it to the named output stylesheet, so the same partial used 100 times still contributes its rules exactly once.
+
+```html
+<!-- _partials/card.html -->
+<style data-merge="style.css">
+  .card { background: #fff; border: 1px solid #ddd; padding: 1rem; }
+  .card h3 { margin: 0 0 .5rem; }
+</style>
+<article class="card">
+  <h3>{{title}}</h3>
+  <p>{{body}}</p>
+</article>
+```
+
+**Build mode:** the `<style>` block is removed from each card's expanded HTML and appended to `dist/style.css` (created if missing) with a `/* tmpla merged */` marker.
+
+**Runtime mode:** on the first expansion of a partial with a merge style, the `<style>` block stays in place (browsers handle `<style>` globally regardless of position); subsequent expansions of the same partial drop it. The `data-merge` attribute is the dedupe signal — the target value is a build-only hint.
+
+A `<style>` without `data-merge` stays inline as written.
+
+When to use: any partial whose presence implies its own visual rules. Co-locating keeps the shape primitive a single self-contained unit and matches Phase 1's "shape primitives carry their own design".
+
 ### Conditionals
 
 ```

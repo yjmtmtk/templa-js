@@ -55,6 +55,23 @@ const tmpla = (() => {
     return cache.get(url);
   };
 
+  // Co-located <style data-merge="..."> blocks: keep on first expansion of a
+  // partial, strip on subsequent expansions so the rules appear in the DOM
+  // exactly once. The target value is a build-only hint; at runtime the
+  // browser resolves all <style> blocks globally regardless of position.
+  const mergedSeen = new Set();
+  const STYLE_MERGE = /<style\b[^>]*\bdata-merge\b[^>]*>[\s\S]*?<\/style>\s*/gi;
+  const STRIP_MERGE_ATTR = /(<style\b[^>]*?)\s+data-merge\s*=\s*("[^"]*"|'[^']*')/gi;
+
+  const handleMergedStyles = (html, url) => {
+    if (mergedSeen.has(url)) return html.replace(STYLE_MERGE, '');
+    if (STYLE_MERGE.test(html)) {
+      mergedSeen.add(url);
+      STYLE_MERGE.lastIndex = 0;
+    }
+    return html.replace(STRIP_MERGE_ATTR, '$1');
+  };
+
   const esc = s => String(s)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -180,7 +197,7 @@ const tmpla = (() => {
     const slots = parseSlots(el.innerHTML);
     const data = collectData(el);
 
-    const html = await fetchText(url);
+    const html = handleMergedStyles(await fetchText(url), url);
     let out = render(rebase(html, url), data);
     out = fillSlots(out, slots);
     const frag = document.createRange().createContextualFragment(out);

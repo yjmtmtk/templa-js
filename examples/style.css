@@ -18,11 +18,8 @@ pre { padding: .75rem 1rem; overflow: auto; }
 .sub-hero h1 { margin: 0 0 .25rem; font-size: 1.5rem; }
 .sub-hero p { margin: 0; color: #666; font-size: .95rem; }
 
-/* Feature cards (parameterized partial used 3x) */
+/* Feature cards layout (the .card itself is styled in _partials/card.html) */
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
-.card { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1rem 1.25rem; }
-.card h3 { margin: 0 0 .5rem; }
-.card p { margin: 0; color: #555; }
 
 /* FAQ (Alpine accordion) */
 .faq-item { border-top: 1px solid #ddd; }
