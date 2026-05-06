@@ -333,26 +333,26 @@ function build(args) {
 }
 
 // ─── init command ────────────────────────────────────────────────────
-const PKG_ROOT = path.resolve(__dirname, '..')
+const PKG_ROOT = path.resolve(__dirname, '..');
 
 function listScaffoldFiles() {
-  const items = []
-  const scaffoldRoot = path.join(PKG_ROOT, 'scaffold')
+  const items = [];
+  const scaffoldRoot = path.join(PKG_ROOT, 'scaffold');
 
   const walk = (dir, relBase) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      if (entry.name.startsWith('.')) continue
-      const abs = path.join(dir, entry.name)
-      const rel = relBase ? `${relBase}/${entry.name}` : entry.name
-      if (entry.isDirectory()) walk(abs, rel)
-      else items.push({ src: abs, dest: rel })
+      if (entry.name.startsWith('.')) continue;
+      const abs = path.join(dir, entry.name);
+      const rel = relBase ? `${relBase}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) walk(abs, rel);
+      else items.push({ src: abs, dest: rel });
     }
-  }
-  walk(scaffoldRoot, '')
+  };
+  walk(scaffoldRoot, '');
 
   // templa.js lives at the package root; init places it at src/js/templa.js
-  items.push({ src: path.join(PKG_ROOT, 'templa.js'), dest: 'src/js/templa.js' })
-  return items
+  items.push({ src: path.join(PKG_ROOT, 'templa.js'), dest: 'src/js/templa.js' });
+  return items;
 }
 
 function init(args) {

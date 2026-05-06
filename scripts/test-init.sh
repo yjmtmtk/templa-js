@@ -21,6 +21,7 @@ test ! -e PLANNER.md
 node "$ROOT/bin/templa.js" build
 test -f dist/index.html
 test -f dist/css/style.css
+test -f dist/js/templa.js
 grep -q "Hello, templa" dist/index.html
 grep -q "<h1>My templa site</h1>" dist/index.html
 
