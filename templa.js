@@ -101,8 +101,8 @@ const templa = (() => {
   // Find top-level <template>...</template> blocks in `html`, depth-aware so
   // nested templates do not confuse the matching close. Scans against a
   // length-preserving redacted copy where quoted string contents are blanked,
-  // so a literal `<template>` token inside an attribute value (e.g. inside a
-  // params string) can't desync the depth counter.
+  // so a literal `<template>` token inside an attribute value can't desync
+  // the depth counter.
   const TEMPLATE_OPEN = /<template((?:\s+[\w:.-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'>]+))?)*)\s*(\/?)>/gi;
   const TEMPLATE_TAG = /<template\b|<\/template\s*>/gi;
   const redactStrings = s => s.replace(
