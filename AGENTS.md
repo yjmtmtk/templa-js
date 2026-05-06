@@ -325,7 +325,7 @@ Do not use Alpine to compose the page (use templa). Do not use templa for runtim
 
 | Mode | Setup | Best for |
 |---|---|---|
-| **Runtime** | `<script src="…/templa.min.js"></script><script>templa.start();</script>` | Local dev, prototypes, internal tools, pages where SEO doesn't matter |
+| **Runtime** | `<script src="…/templa.min.js"></script><script type="module">await templa.start();</script>` | Local dev, prototypes, internal tools, pages where SEO doesn't matter |
 | **Build** | `npx @yjmtmtk/templa build -i ./src -o ./dist` | Production, SEO, social previews, fastest first paint |
 
 Layout source files must be **body fragments** (no `<html>` / `<body>` wrapper) so they expand correctly in both modes.
@@ -371,8 +371,9 @@ The CLI walks every `.html` file in the source tree (skipping `_*` files and dir
    ```html
    <script src="../templa.js"></script>
    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
-   <script>
-     templa.start(() => window.Alpine && Alpine.initTree(document.body));
+   <script type="module">
+     await templa.start();
+     window.Alpine && Alpine.initTree(document.body);
    </script>
    ```
 

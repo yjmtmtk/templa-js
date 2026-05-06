@@ -18,7 +18,7 @@ It works in two modes:
   <template src="_partials/footer.html"></template>
 
   <script src="templa.js"></script>
-  <script>templa.start();</script>
+  <script type="module">await templa.start();</script>
 </body>
 ```
 
@@ -79,10 +79,13 @@ Then call `templa.start()` to expand all of them:
 
 ```html
 <script src="templa.js"></script>
-<script>templa.start();</script>
+<script type="module">
+  await templa.start();
+  // any post-init: Alpine.initTree(document.body), AOS.init(), Swiper, …
+</script>
 ```
 
-`templa.start(cb)` runs the loader and invokes the optional callback once everything is mounted — useful for initializing plugins (AOS, Swiper, etc.) that depend on the final DOM.
+`templa.start()` returns a Promise that resolves once head + body partials have been expanded. The module-script form is required for top-level `await`. Anything written after the `await` runs once the DOM has been fully assembled — perfect for plugins like Alpine.js, AOS, Swiper, etc.
 
 ### Passing data
 
@@ -141,7 +144,7 @@ Keep layouts as **body fragments** (no `<!DOCTYPE>` / `<html>` / `<head>` / `<bo
   </template>
 
   <script src="https://cdn.jsdelivr.net/npm/@yjmtmtk/templa/templa.min.js"></script>
-  <script>templa.start();</script>
+  <script type="module">await templa.start();</script>
 </body>
 </html>
 ```
@@ -161,7 +164,7 @@ Partials can include other partials. `templa` keeps expanding until no `<templat
 
 ### Loading order
 
-`templa.start()` processes `<head>` partials first, then waits for `DOMContentLoaded`, then processes `<body>` partials. This makes it safe to put `<link>` and `<script>` tags inside head partials.
+`templa.start()` kicks off head expansion **synchronously** so its fetches overlap with the rest of HTML parsing — critical when partials in `<head>` include `<link rel="stylesheet">`. Body expansion waits for `DOMContentLoaded`. The returned Promise resolves once both phases complete.
 
 ### Relative paths in nested partials
 
@@ -192,9 +195,9 @@ At runtime, the same dedupe applies: the `<style>` block stays in the DOM for th
 
 ## API
 
-### `templa.start(callback?)`
+### `templa.start()`
 
-Loads all `<template src>` elements (head first, then body) and invokes the optional callback after everything is mounted.
+Loads all `<template src>` elements (head first, then body). Returns a Promise that resolves once everything is mounted. Use with `await` from a `<script type="module">`.
 
 ### `templa.run(selector?)`
 

@@ -91,6 +91,22 @@ function flushMergedStyles(distDir) {
   mergedSeen.clear();
 }
 
+// ─── runtime-script stripper ─────────────────────────────────────────
+// build output is fully expanded HTML; the runtime templa.js is no-op
+// there. Strip the <script src="...templa.js"> tag and any inline
+// `await templa.start();` (the canonical bootstrap pair). Tags with
+// `data-keep` survive — the user's explicit opt-out.
+const STRIP_TEMPLA_SRC = /<script\b(?![^>]*\bdata-keep\b)[^>]*\bsrc\s*=\s*["'][^"']*\btempla(\.min)?\.js[^"']*["'][^>]*>\s*<\/script>\s*/gi;
+const STRIP_TEMPLA_START = /\bawait\s+templa\.start\s*\(\s*\)\s*;?\s*/g;
+const STRIP_EMPTY_MODULE = /<script\s+type\s*=\s*["']module["']\s*>\s*<\/script>\s*/gi;
+
+function stripRuntimeScripts(html) {
+  return html
+    .replace(STRIP_TEMPLA_SRC, '')
+    .replace(STRIP_TEMPLA_START, '')
+    .replace(STRIP_EMPTY_MODULE, '');
+}
+
 function collectData(attrs) {
   const data = {};
   ATTR.lastIndex = 0;
@@ -261,7 +277,8 @@ function walk(srcDir, distDir) {
         visit(inPath, outPath);
       } else if (entry.name.endsWith('.html')) {
         if (isPartial(entry.name)) { stats.partials++; continue; }
-        const html = expand(fs.readFileSync(inPath, 'utf8'), dir);
+        let html = expand(fs.readFileSync(inPath, 'utf8'), dir);
+        html = stripRuntimeScripts(html);
         fs.mkdirSync(path.dirname(outPath), { recursive: true });
         fs.writeFileSync(outPath, html);
         stats.files++;
@@ -333,6 +350,11 @@ Template syntax:
 
 Passing data:
   <template src="card.html" title="Tiny" body="Light, ~3KB."></template>
+
+Build also strips the runtime bootstrap from output HTML:
+  <script src="...templa.js"></script>          (removed)
+  <script type="module">await templa.start();   (line removed)
+Add the data-keep attribute to opt out of the script-src strip.
 
 Layouts (Web Components-style slots):
   <!-- _layouts/main.html -->

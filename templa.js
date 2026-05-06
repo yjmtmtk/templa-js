@@ -8,7 +8,14 @@
  * Usage:
  *   <template src="partials/header.html" title="Home"></template>
  *   <script src="templa.js"></script>
- *   <script>templa.start();</script>
+ *   <script type="module">
+ *     await templa.start();
+ *     // any post-init: Alpine.initTree(document.body), etc.
+ *   </script>
+ *
+ * `templa.start()` returns a Promise that resolves once head + body
+ * templates have been expanded. No callback API — `await` is the only
+ * pattern.
  *
  * Passing data:
  *   - Every attribute on <template> becomes a string data key, except
@@ -231,12 +238,24 @@ const templa = (() => {
     console.warn('[templa] max passes reached; possible recursive include');
   };
 
-  const start = cb => {
+  // start() returns a Promise that resolves after head + body templates
+  // have been expanded. Head expansion is kicked off synchronously so its
+  // fetches can run in parallel with the rest of HTML parsing — important
+  // when partials in <head> include <link rel="stylesheet"> and the script
+  // tag is itself in <head>. Body expansion waits for DOMContentLoaded.
+  const start = () => {
     const headTask = run('head template[src]');
-    addEventListener('DOMContentLoaded', async () => {
-      await headTask;
-      await run('body template[src]');
-      cb?.();
+    return new Promise(resolve => {
+      const finish = async () => {
+        await headTask;
+        await run('body template[src]');
+        resolve();
+      };
+      if (document.readyState === 'loading') {
+        addEventListener('DOMContentLoaded', finish);
+      } else {
+        finish();
+      }
     });
   };
 
