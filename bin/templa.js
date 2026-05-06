@@ -93,17 +93,26 @@ function flushMergedStyles(distDir) {
 
 // ─── runtime-script stripper ─────────────────────────────────────────
 // build output is fully expanded HTML; the runtime templa.js is no-op
-// there. Strip the <script src="...templa.js"> tag and any inline
-// `await templa.start();` (the canonical bootstrap pair). Tags with
-// `data-keep` survive — the user's explicit opt-out.
+// there. We remove the canonical bootstrap pair from output:
+//   <script src="...templa.js"></script>     (the loader tag)
+//   <script>(await) templa.start();</script>  (the start call)
+// The user can opt out of the loader-tag strip by adding `data-keep`.
+//
+// Statement-level strip handles two forms — the whole-script case (the
+// tag's only content is templa.start()) and the line-level case (one
+// statement inside a multi-statement script). Complex usages like
+// `templa.start().then(...)` or `const p = templa.start()` are left
+// alone — they are intentional and the user owns them.
 const STRIP_TEMPLA_SRC = /<script\b(?![^>]*\bdata-keep\b)[^>]*\bsrc\s*=\s*["'][^"']*\btempla(\.min)?\.js[^"']*["'][^>]*>\s*<\/script>\s*/gi;
-const STRIP_TEMPLA_START = /\bawait\s+templa\.start\s*\(\s*\)\s*;?\s*/g;
+const STRIP_TEMPLA_ONLY_SCRIPT = /<script(?:\s+type\s*=\s*["']module["'])?\s*>\s*(?:await\s+)?templa\.start\s*\(\s*\)\s*;?\s*<\/script>\s*/gi;
+const STRIP_TEMPLA_LINE = /^[ \t]*(?:await\s+)?templa\.start\s*\(\s*\)\s*;?[ \t]*\r?\n?/gm;
 const STRIP_EMPTY_MODULE = /<script\s+type\s*=\s*["']module["']\s*>\s*<\/script>\s*/gi;
 
 function stripRuntimeScripts(html) {
   return html
     .replace(STRIP_TEMPLA_SRC, '')
-    .replace(STRIP_TEMPLA_START, '')
+    .replace(STRIP_TEMPLA_ONLY_SCRIPT, '')
+    .replace(STRIP_TEMPLA_LINE, '')
     .replace(STRIP_EMPTY_MODULE, '');
 }
 

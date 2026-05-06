@@ -379,6 +379,19 @@ The CLI walks every `.html` file in the source tree (skipping `_*` files and dir
 
    In build mode, Alpine attributes are pre-rendered into the static HTML and Alpine inits normally — no coordination needed.
 
+11. **Runtime bootstrap leaks into build output.** The build CLI strips the canonical loader and start call automatically:
+
+    | Source | Build output |
+    |---|---|
+    | `<script src="…/templa.js"></script>` | removed |
+    | `<script src="…/templa.js" data-keep></script>` | preserved (opt-out) |
+    | `<script type="module">await templa.start();</script>` | tag removed |
+    | `<script>templa.start();</script>` | tag removed |
+    | multi-line module with `await templa.start();` followed by post-init | only the `await` line is removed; post-init survives |
+    | `templa.start().then(...)`, `const p = templa.start()`, etc. | left alone — write these only when you intentionally want runtime behaviour preserved |
+
+    Stick to the canonical `await templa.start();` form unless you have a reason not to. Anything more complex falls outside the strip and will run at the consumer's page if your build output keeps it.
+
 ---
 
 ## Quick command reference
