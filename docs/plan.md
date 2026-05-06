@@ -1,14 +1,14 @@
-# Phase 1 Plan — instruction prompt for an AI orchestrator
+# Plan — instruction prompt for an AI orchestrator
 
-You are about to design the **Phase 1 skeleton** of a templa project from a free-form site brief. Read this entire file before doing anything. Your single deliverable is a written plan in chat. **You will not create or modify any files in this step.**
+You are about to design the **skeleton** of a templa project from a free-form site brief. Read this entire file before doing anything. Your single deliverable is a written plan in chat. **You will not create or modify any files in this step.**
 
 If you have not already, also read `AGENTS.md` in this repository. It is the source of truth for templa's two-phase workflow, syntax, and conventions. This file complements `AGENTS.md`; it does not replace it.
 
 ## Your role
 
-You are the orchestrator. Given a free-form site brief from the user, your job is to produce a complete, executable Phase 1 plan — detailed enough that downstream sub-agents (or you, in a follow-up step) can implement Phase 1 without asking another question.
+You are the orchestrator. Given a free-form site brief, your job is to produce a complete, executable plan — detailed enough that downstream sub-agents (or you, in a follow-up step) can implement the skeleton without asking another question.
 
-Phase 1 is the serial part of building a templa site. It locks down design tokens, layout, chrome partials, shape primitives, and empty page shells before any parallel Phase 2 content work begins.
+The plan covers the serial part of building a templa site: design tokens, layout, chrome partials, shape primitives, and empty page shells. Parallel content fill happens after this plan is approved and the skeleton built.
 
 ## Hard rules
 
@@ -100,7 +100,7 @@ Sections (top → bottom):
 - "A few favourites" — section with `<h2>` + card-grid of 3 card primitives
 - "Questions" — inline Alpine accordion (no primitive; lives only on this page)
 
-The wireframe is for both you (the orchestrator confirming structure) and the Phase 2 sub-agent who will implement the page.
+The wireframe is for both you (the orchestrator confirming structure) and the content sub-agent who will implement the page.
 
 ### 4. Decide the primitive kit
 
@@ -137,7 +137,7 @@ If the brief was vague on aesthetics, infer from the project type and brand vibe
 
 ### 7. Produce the file inventory
 
-A complete listing of every file Phase 1 will create, **paths relative to the project root**. Each line: path + a one-line role comment. Group by purpose. Page entries should hint at their Phase 2 section composition. Example skeleton:
+A complete listing of every file the skeleton will create, **paths relative to the project root**. Each line: path + a one-line role comment. Group by purpose. Page entries should hint at the section composition that the next step will fill in. Example skeleton:
 
 ```text
 src/style.css                       // tokens + base + chrome (source of truth)
@@ -153,7 +153,7 @@ src/contact.html                    // shell — sections: sub-hero, contact, ma
 src/assets/                         // images / fonts / etc., copied to dist/ as-is
 ```
 
-### 8. Sketch the Phase 2 dispatch
+### 8. Sketch the content-fill dispatch
 
 One sub-agent per entry page. For each, give a 2–3-line brief: which primitives the page composes, which sections need inline content, any image/asset references, any Alpine.js bits to author inline.
 
@@ -165,12 +165,12 @@ End the plan with this line, verbatim:
 npx @yjmtmtk/templa build -i ./src -o ./dist
 ```
 
-This is the gate that separates Phase 1 from Phase 2. Phase 2 sub-agents must not be dispatched until this command succeeds against the placeholder skeleton.
+This is the gate that separates skeleton from content fill. Content sub-agents must not be dispatched until this command succeeds against the placeholder skeleton.
 
 ## Output format — your reply takes this shape
 
 ```markdown
-# Phase 1 plan: <project name>
+# Plan: <project name>
 
 ## 1. Brief, restated
 …
@@ -243,7 +243,7 @@ Fonts: Inter (body), Lora (headings).
 … full listing per the example above …
 ```
 
-## 8. Phase 2 dispatch
+## 8. Content-fill dispatch
 - Sub-agent A → src/index.html — composes hero + 3 cards + inline FAQ accordion (Alpine)
 - Sub-agent B → src/about.html — composes sub-hero + prose article with one image
 
@@ -258,8 +258,8 @@ npx @yjmtmtk/templa build -i ./src -o ./dist
 
 End the plan with one line:
 
-> Plan complete — awaiting user approval before any Phase 1 file is written.
+> Plan complete — awaiting user approval before any file is written.
 
 ## After you finish
 
-Stop. Wait for the next instruction. Implementation (writing files, building, dispatching Phase 2) is a separate step driven by a different prompt or an upcoming SKILL.
+Stop. Wait for the next instruction. Implementation (writing files, building, dispatching content sub-agents) is a separate step driven by a different prompt or an upcoming SKILL.
