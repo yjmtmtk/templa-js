@@ -18,6 +18,24 @@ Phase 1 is the serial part of building a templa site. It locks down design token
 4. **Honor templa conventions.** Layouts are body fragments (no `<html>` / `<body>`). Partials receive data via plain HTML attributes; `data-*` attributes are reserved as metadata and skipped. Shape primitives ship with co-located `<style data-merge="style.css">` blocks.
 5. **If something in the brief is ambiguous, list it under "Open questions" at the end of the plan.** Do not invent and do not guess silently.
 
+## Project layout assumed by this plan
+
+All paths in the plan are relative to the **project root**. The expected layout:
+
+```
+project-root/
+├── plan.md            ← this plan, lives here
+├── src/               ← templa source (build input)
+│   ├── style.css
+│   ├── _layouts/
+│   ├── _partials/
+│   ├── assets/        ← images, copied to dist/ as-is
+│   └── *.html         ← entry pages
+└── dist/              ← build output (gitignored, not authored)
+```
+
+The build command is therefore `npx @yjmtmtk/templa build -i ./src -o ./dist` (the templa CLI defaults). `plan.md` stays at root and is never inside `src/` (so it never leaks into the build output).
+
 ## Input you will receive
 
 A free-form site brief from the user. It may include any of:
@@ -111,25 +129,28 @@ If the brief was vague on aesthetics, infer from the project type and brand vibe
 
 ### 6. Decide layout and chrome
 
-- **`_layouts/main.html`** — a body fragment (no `<html>` / `<body>` wrapper). Describe its slot shape. Almost always: `<header>` with brand + named `nav` slot, `<main>` with default slot, static `<footer>`.
-- **`_partials/meta.html`** — `<head>` chrome: charset, viewport, theme-color, font preconnect/links, `./style.css` link.
-- **`_partials/nav.html`** — navigation anchors, each with `data-nav="<page-id>"` for active styling driven by `body[data-page="..."]` selectors in `style.css`.
+(All paths below are project-root relative.)
+
+- **`src/_layouts/main.html`** — a body fragment (no `<html>` / `<body>` wrapper). Describe its slot shape. Almost always: `<header>` with brand + named `nav` slot, `<main>` with default slot, static `<footer>`.
+- **`src/_partials/meta.html`** — `<head>` chrome: charset, viewport, theme-color, font preconnect/links, `./style.css` link.
+- **`src/_partials/nav.html`** — navigation anchors, each with `data-nav="<page-id>"` for active styling driven by `body[data-page="..."]` selectors in `src/style.css`.
 
 ### 7. Produce the file inventory
 
-A complete listing of every file Phase 1 will create. Each line: path + a one-line role comment. Group by purpose. Page entries should hint at their Phase 2 section composition. Example skeleton:
+A complete listing of every file Phase 1 will create, **paths relative to the project root**. Each line: path + a one-line role comment. Group by purpose. Page entries should hint at their Phase 2 section composition. Example skeleton:
 
 ```text
-style.css                       // tokens + base + chrome (source of truth)
-_layouts/main.html              // body fragment — header / main slot / footer
-_partials/meta.html             // <head> chrome (charset, viewport, fonts, css link)
-_partials/nav.html              // global nav with data-nav="<page>" attributes
-_partials/hero.html             // primitive: landing hero (co-located styles)
-_partials/sub-hero.html         // primitive: inner-page header
-_partials/card.html             // primitive: reusable item card
-index.html                      // shell — sections: hero, featured cards, faq
-about.html                      // shell — sections: sub-hero, prose
-contact.html                    // shell — sections: sub-hero, contact, map
+src/style.css                       // tokens + base + chrome (source of truth)
+src/_layouts/main.html              // body fragment — header / main slot / footer
+src/_partials/meta.html             // <head> chrome (charset, viewport, fonts, css link)
+src/_partials/nav.html              // global nav with data-nav="<page>" attributes
+src/_partials/hero.html             // primitive: landing hero (co-located styles)
+src/_partials/sub-hero.html         // primitive: inner-page header
+src/_partials/card.html             // primitive: reusable item card
+src/index.html                      // shell — sections: hero, featured cards, faq
+src/about.html                      // shell — sections: sub-hero, prose
+src/contact.html                    // shell — sections: sub-hero, contact, map
+src/assets/                         // images / fonts / etc., copied to dist/ as-is
 ```
 
 ### 8. Sketch the Phase 2 dispatch
@@ -155,8 +176,8 @@ This is the gate that separates Phase 1 from Phase 2. Phase 2 sub-agents must no
 …
 
 ## 2. Page set
-- index.html — …
-- about.html — …
+- src/index.html — …
+- src/about.html — …
 
 ## 3. Wireframes + sections per page
 
@@ -213,9 +234,9 @@ Fonts: Inter (body), Lora (headings).
 (Note: tokens inferred from the "warm, slow" vibe; override if you want.)
 
 ## 6. Layout and chrome
-- _layouts/main.html — header (brand + nav slot), main (default slot), footer (static)
-- _partials/meta.html — charset, viewport, theme-color, fonts, ./style.css
-- _partials/nav.html — 3 entries with data-nav
+- src/_layouts/main.html — header (brand + nav slot), main (default slot), footer (static)
+- src/_partials/meta.html — charset, viewport, theme-color, fonts, ./style.css
+- src/_partials/nav.html — 3 entries with data-nav
 
 ## 7. File inventory
 ```text
@@ -223,8 +244,8 @@ Fonts: Inter (body), Lora (headings).
 ```
 
 ## 8. Phase 2 dispatch
-- Sub-agent A → index.html — composes hero + 3 cards + inline FAQ accordion (Alpine)
-- Sub-agent B → about.html — composes sub-hero + prose article with one image
+- Sub-agent A → src/index.html — composes hero + 3 cards + inline FAQ accordion (Alpine)
+- Sub-agent B → src/about.html — composes sub-hero + prose article with one image
 
 ## 9. Build gate
 ```bash
