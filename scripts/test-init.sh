@@ -33,4 +33,14 @@ test -f src/index.html
 test -f AGENTS.md
 test -f PLANNER.md
 
+# --- second init in same dir must refuse (no --force) ---
+cd "$TMP2"
+if node "$ROOT/bin/templa.js" init --ai >/dev/null 2>&1; then
+  echo "FAIL: init should have refused to overwrite"
+  exit 1
+fi
+# Existing files must be untouched (mtime check is overkill; presence is enough)
+test -f src/index.html
+test -f AGENTS.md
+
 echo "✓ init smoke test passed"

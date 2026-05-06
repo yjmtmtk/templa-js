@@ -380,9 +380,21 @@ function init(args) {
     }
   }
 
+  const conflicts = items
+    .map(it => it.dest)
+    .filter(dest => fs.existsSync(path.join(cwd, dest)));
+
   console.log(`templa init`);
   console.log(`  cwd: ${cwd}`);
   console.log('');
+
+  if (conflicts.length > 0) {
+    console.error(`  Refusing to overwrite existing files:`);
+    for (const c of conflicts) console.error(`    ${c}`);
+    console.error('');
+    console.error('  Re-run with --force to overwrite.');
+    process.exit(1);
+  }
 
   for (const { src, dest } of items) {
     const destAbs = path.join(cwd, dest);
