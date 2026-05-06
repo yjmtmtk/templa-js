@@ -66,7 +66,7 @@ Lock down everything downstream sections will *consume*. **One agent in charge. 
 
 Phase 1 is complete when:
 
-- `npx @yjmtmtk/tmpla build` succeeds.
+- `npx @yjmtmtk/tmpla build` succeeds — **this is the gate; do not dispatch Phase 2 sub-agents until it passes.** Phase 2 assumes a sound skeleton; starting parallel work on a broken one produces incoherent output that's hard to recover from.
 - The output renders cohesively even with placeholder copy.
 - Every shape that downstream sections might need is already a partial.
 
