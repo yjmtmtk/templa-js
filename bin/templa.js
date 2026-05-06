@@ -356,29 +356,43 @@ function listScaffoldFiles() {
 }
 
 function init(args) {
-  const cwd = process.cwd()
-  const items = listScaffoldFiles()
-
-  for (const { src } of items) {
-    if (!fs.existsSync(src)) {
-      console.error(`Internal error: templa installation appears broken at ${src}`)
-      process.exit(1)
+  let withAi = false;
+  for (const arg of args) {
+    if (arg === '--ai') withAi = true;
+    else {
+      console.error(`Unknown init option: ${arg}\n`);
+      help();
+      process.exit(1);
     }
   }
 
-  console.log(`templa init`)
-  console.log(`  cwd: ${cwd}`)
-  console.log('')
-
-  for (const { src, dest } of items) {
-    const destAbs = path.join(cwd, dest)
-    fs.mkdirSync(path.dirname(destAbs), { recursive: true })
-    fs.copyFileSync(src, destAbs)
-    console.log(`  ${dest}`)
+  const cwd = process.cwd();
+  const items = listScaffoldFiles();
+  if (withAi) {
+    items.push({ src: path.join(PKG_ROOT, 'AGENTS.md'), dest: 'AGENTS.md' });
+    items.push({ src: path.join(PKG_ROOT, 'PLANNER.md'), dest: 'PLANNER.md' });
   }
 
-  console.log('')
-  console.log(`✓ ${items.length} file(s) written`)
+  for (const { src } of items) {
+    if (!fs.existsSync(src)) {
+      console.error(`Internal error: templa installation appears broken at ${src}`);
+      process.exit(1);
+    }
+  }
+
+  console.log(`templa init`);
+  console.log(`  cwd: ${cwd}`);
+  console.log('');
+
+  for (const { src, dest } of items) {
+    const destAbs = path.join(cwd, dest);
+    fs.mkdirSync(path.dirname(destAbs), { recursive: true });
+    fs.copyFileSync(src, destAbs);
+    console.log(`  ${dest}`);
+  }
+
+  console.log('');
+  console.log(`✓ ${items.length} file(s) written`);
 }
 
 // ─── entry ───────────────────────────────────────────────────────────
