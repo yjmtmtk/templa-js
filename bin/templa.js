@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * tmpla CLI — static build for <template src> partials
+ * templa CLI — static build for <template src> partials
  *
  * Usage:
- *   tmpla build [-i <src>] [-o <dist>]
- *   tmpla --help
- *   tmpla --version
+ *   templa build [-i <src>] [-o <dist>]
+ *   templa --help
+ *   templa --version
  *
  * Build expands every <template src="..."> in your source HTML files
  * by inlining the referenced partial. Supports the same syntax as the
@@ -82,7 +82,7 @@ function flushMergedStyles(distDir) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     const merged = blocks.join('\n\n');
     if (fs.existsSync(file)) {
-      fs.appendFileSync(file, '\n\n/* tmpla merged */\n' + merged + '\n');
+      fs.appendFileSync(file, '\n\n/* templa merged */\n' + merged + '\n');
     } else {
       fs.writeFileSync(file, merged + '\n');
     }
@@ -103,7 +103,7 @@ function collectData(attrs) {
   const dp = getAttr(attrs, 'data-params');
   if (dp) {
     try { Object.assign(data, new Function(`return (${dp})`)()); }
-    catch (e) { console.error('[tmpla] bad data-params:', dp, e.message); }
+    catch (e) { console.error('[templa] bad data-params:', dp, e.message); }
   }
   return data;
 }
@@ -196,7 +196,7 @@ function applyConditionals(html, data) {
 // ─── recursive expansion ─────────────────────────────────────────────
 function expand(html, baseDir, depth = 0) {
   if (depth > MAX_DEPTH) {
-    console.warn('[tmpla] max include depth reached; possible recursion');
+    console.warn('[templa] max include depth reached; possible recursion');
     return html;
   }
 
@@ -226,7 +226,7 @@ function expand(html, baseDir, depth = 0) {
         content = fillSlots(content, slots);
         content = expand(content, path.dirname(partialPath), depth + 1);
       } else {
-        console.error('[tmpla] partial not found:', partialPath);
+        console.error('[templa] partial not found:', partialPath);
       }
 
       html = html.slice(0, b.start) + content + html.slice(b.end);
@@ -297,7 +297,7 @@ function build(args) {
   if (fs.existsSync(DIST)) fs.rmSync(DIST, { recursive: true, force: true });
   fs.mkdirSync(DIST, { recursive: true });
 
-  console.log(`tmpla build`);
+  console.log(`templa build`);
   console.log(`  src:  ${path.relative(process.cwd(), SRC) || '.'}`);
   console.log(`  dist: ${path.relative(process.cwd(), DIST) || '.'}`);
   console.log('');
@@ -314,10 +314,10 @@ function build(args) {
 // ─── entry ───────────────────────────────────────────────────────────
 function help() {
   process.stdout.write(`
-tmpla v${VERSION} — tiny HTML template loader
+templa v${VERSION} — tiny HTML template loader
 
 Usage:
-  tmpla build [-i <src>] [-o <dist>]
+  templa build [-i <src>] [-o <dist>]
 
 Options:
   -i <dir>      Source directory (default: ./src)

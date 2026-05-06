@@ -1,14 +1,14 @@
 /**
- * tmpla — HTML template loader (read as "tempura")
+ * templa — HTML template loader (read as "tempura")
  *
- * A small bridge to the HTML we should have. tmpla expands
+ * A small bridge to the HTML we should have. templa expands
  * <template src="..."> elements into real markup, both at runtime in the
  * browser and at build time via the CLI. Pure ES, zero dependencies.
  *
  * Usage:
  *   <template src="partials/header.html" title="Home"></template>
- *   <script src="tmpla.js"></script>
- *   <script>tmpla.start();</script>
+ *   <script src="templa.js"></script>
+ *   <script>templa.start();</script>
  *
  * Passing data:
  *   - Every attribute on <template> becomes a string data key, except the
@@ -37,20 +37,20 @@
  *     <h1>Hello</h1>
  *   </template>
  *
- * Repository: https://github.com/yjmtmtk/tmpla
+ * Repository: https://github.com/yjmtmtk/templa
  * License: MIT
  */
-const tmpla = (() => {
+const templa = (() => {
   const MAX_PASSES = 50;
   const cache = new Map();
 
   const fetchText = url => {
     if (!cache.has(url)) {
       cache.set(url, fetch(url).then(r => {
-        if (!r.ok) console.error('[tmpla] fetch failed:', url, r.status);
+        if (!r.ok) console.error('[templa] fetch failed:', url, r.status);
         return r.ok ? r.text() : '';
       }).catch(e => {
-        console.error('[tmpla] fetch error:', url, e);
+        console.error('[templa] fetch error:', url, e);
         return '';
       }));
     }
@@ -198,7 +198,7 @@ const tmpla = (() => {
     const dp = el.getAttribute('data-params');
     if (dp) {
       try { Object.assign(data, new Function(`return (${dp})`)()); }
-      catch (e) { console.error('[tmpla] bad data-params:', dp, e); }
+      catch (e) { console.error('[templa] bad data-params:', dp, e); }
     }
     return data;
   };
@@ -228,12 +228,12 @@ const tmpla = (() => {
       if (!targets.length) return;
       await Promise.all(targets.map(el =>
         expand(el).catch(e => {
-          console.error('[tmpla] failed:', el.getAttribute('src'), e);
+          console.error('[templa] failed:', el.getAttribute('src'), e);
           el.remove();
         })
       ));
     }
-    console.warn('[tmpla] max passes reached; possible recursive include');
+    console.warn('[templa] max passes reached; possible recursive include');
   };
 
   const start = cb => {
@@ -248,5 +248,5 @@ const tmpla = (() => {
   return { run, start };
 })();
 
-if (typeof window !== 'undefined') window.tmpla = tmpla;
-if (typeof module !== 'undefined' && module.exports) module.exports = tmpla;
+if (typeof window !== 'undefined') window.templa = templa;
+if (typeof module !== 'undefined' && module.exports) module.exports = templa;

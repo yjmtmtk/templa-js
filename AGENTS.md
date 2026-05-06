@@ -1,28 +1,28 @@
-# AGENTS.md — guide for AI agents working with tmpla
+# AGENTS.md — guide for AI agents working with templa
 
-This file is for AI coding agents (Claude Code, Cursor, Aider, Copilot, etc.) tasked with editing a tmpla-based website. **Read it before touching files.** It is structured as a workflow first, reference second.
+This file is for AI coding agents (Claude Code, Cursor, Aider, Copilot, etc.) tasked with editing a templa-based website. **Read it before touching files.** It is structured as a workflow first, reference second.
 
 ## TL;DR
 
-tmpla is a tiny HTML template loader giving you:
+templa is a tiny HTML template loader giving you:
 
 - `<template src="...">` to inline another HTML file
 - `{{var}}` for variables; `<template if="key">` / `<template unless="key">` for existence-based conditionals
 - `<slot>` and `<slot name="X">` for Web Components-style layouts
-- A build CLI (`npx @yjmtmtk/tmpla build`) that statically expands all of the above
+- A build CLI (`npx @yjmtmtk/templa build`) that statically expands all of the above
 
 Same syntax works at runtime (browser) and at build time. Zero dependencies.
 
-## When tmpla fits
+## When templa fits
 
-| Task | tmpla? |
+| Task | templa? |
 |---|---|
 | Marketing site / landing page (1–30 pages) | ✅ great |
 | Documentation site, portfolio, personal blog | ✅ great |
 | Page-driven static site that needs SEO | ✅ build mode |
 | App with auth, DB, server-rendered data | ❌ pick Next.js / Astro |
 | SPA with heavy client state | ❌ pick React / Vue / Svelte |
-| Quick interactive widgets on otherwise static pages | ✅ tmpla + Alpine.js |
+| Quick interactive widgets on otherwise static pages | ✅ templa + Alpine.js |
 
 ---
 
@@ -66,7 +66,7 @@ Lock down everything downstream sections will *consume*. **One agent in charge. 
 
 Phase 1 is complete when:
 
-- `npx @yjmtmtk/tmpla build` succeeds — **this is the gate; do not dispatch Phase 2 sub-agents until it passes.** Phase 2 assumes a sound skeleton; starting parallel work on a broken one produces incoherent output that's hard to recover from.
+- `npx @yjmtmtk/templa build` succeeds — **this is the gate; do not dispatch Phase 2 sub-agents until it passes.** Phase 2 assumes a sound skeleton; starting parallel work on a broken one produces incoherent output that's hard to recover from.
 - The output renders cohesively even with placeholder copy.
 - Every shape that downstream sections might need is already a partial.
 
@@ -214,7 +214,7 @@ For values that aren't strings (numbers, booleans, arrays, objects, computed val
 A few patterns to avoid (they are silently ignored):
 
 ```html
-<!-- Vue/Alpine binding prefix — not recognized by tmpla. -->
+<!-- Vue/Alpine binding prefix — not recognized by templa. -->
 <template src="x.html" :params="{ ... }"></template>
 
 <!-- Pre-0.2.0 syntax — REMOVED. Use multi-attribute or data-params instead. -->
@@ -232,7 +232,7 @@ Once data is passed in, partials read it with these placeholders:
 
 ### Co-located styles (`<style data-merge="...">`)
 
-A partial can carry its own CSS in a `<style>` block tagged with `data-merge="<file>"`. tmpla extracts it once per partial and appends it to the named output stylesheet, so the same partial used 100 times still contributes its rules exactly once.
+A partial can carry its own CSS in a `<style>` block tagged with `data-merge="<file>"`. templa extracts it once per partial and appends it to the named output stylesheet, so the same partial used 100 times still contributes its rules exactly once.
 
 ```html
 <!-- _partials/card.html -->
@@ -246,7 +246,7 @@ A partial can carry its own CSS in a `<style>` block tagged with `data-merge="<f
 </article>
 ```
 
-**Build mode:** the `<style>` block is removed from each card's expanded HTML and appended to `dist/style.css` (created if missing) with a `/* tmpla merged */` marker.
+**Build mode:** the `<style>` block is removed from each card's expanded HTML and appended to `dist/style.css` (created if missing) with a `/* templa merged */` marker.
 
 **Runtime mode:** on the first expansion of a partial with a merge style, the `<style>` block stays in place (browsers handle `<style>` globally regardless of position); subsequent expansions of the same partial drop it. The `data-merge` attribute is the dedupe signal — the target value is a build-only hint.
 
@@ -270,7 +270,7 @@ When to use: any partial whose presence implies its own visual rules. Co-locatin
 
 Conditionals can be nested. Resolution iterates until stable.
 
-For **conditional attributes** (`disabled` on/off, `target="_blank"` only when external, etc.), tmpla core does not provide a built-in mechanism — that is intentional. Use a plugin (`@yjmtmtk/tmpla-plugin-attrs` or similar) when a project needs them. Keeping the core to existence-based block conditionals preserves the "tmpla looks like HTML the platform should ship" stance.
+For **conditional attributes** (`disabled` on/off, `target="_blank"` only when external, etc.), templa core does not provide a built-in mechanism — that is intentional. Use a plugin (`@yjmtmtk/templa-plugin-attrs` or similar) when a project needs them. Keeping the core to existence-based block conditionals preserves the "templa looks like HTML the platform should ship" stance.
 
 ### Layouts and slots
 
@@ -298,10 +298,10 @@ Anything inside the calling `<template src>` not wrapped in a `<template slot="X
 
 Decision rule:
 
-- **Anything resolvable at build time / page load** → tmpla
+- **Anything resolvable at build time / page load** → templa
 - **Anything that depends on user input or runtime state** → Alpine.js
 
-Pair tmpla with [Alpine.js](https://alpinejs.dev/) for interactive bits (modals, dropdowns, accordions, tabs, form behaviour). Add Alpine once in your meta partial or page `<head>`:
+Pair templa with [Alpine.js](https://alpinejs.dev/) for interactive bits (modals, dropdowns, accordions, tabs, form behaviour). Add Alpine once in your meta partial or page `<head>`:
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
@@ -316,7 +316,7 @@ Use `x-*` attributes inside any partial:
 </section>
 ```
 
-Do not use Alpine to compose the page (use tmpla). Do not use tmpla for runtime state (use Alpine).
+Do not use Alpine to compose the page (use templa). Do not use templa for runtime state (use Alpine).
 
 ---
 
@@ -324,8 +324,8 @@ Do not use Alpine to compose the page (use tmpla). Do not use tmpla for runtime 
 
 | Mode | Setup | Best for |
 |---|---|---|
-| **Runtime** | `<script src="…/tmpla.min.js"></script><script>tmpla.start();</script>` | Local dev, prototypes, internal tools, pages where SEO doesn't matter |
-| **Build** | `npx @yjmtmtk/tmpla build -i ./src -o ./dist` | Production, SEO, social previews, fastest first paint |
+| **Runtime** | `<script src="…/templa.min.js"></script><script>templa.start();</script>` | Local dev, prototypes, internal tools, pages where SEO doesn't matter |
+| **Build** | `npx @yjmtmtk/templa build -i ./src -o ./dist` | Production, SEO, social previews, fastest first paint |
 
 Layout source files must be **body fragments** (no `<html>` / `<body>` wrapper) so they expand correctly in both modes.
 
@@ -336,9 +336,9 @@ For SEO-sensitive pages, always build before deploy. Crawlers other than Googleb
 ## Build CLI
 
 ```bash
-npx @yjmtmtk/tmpla build           # default: ./src → ./dist
-npx @yjmtmtk/tmpla build -i pages -o public
-npx @yjmtmtk/tmpla --help
+npx @yjmtmtk/templa build           # default: ./src → ./dist
+npx @yjmtmtk/templa build -i pages -o public
+npx @yjmtmtk/templa --help
 ```
 
 The CLI walks every `.html` file in the source tree (skipping `_*` files and directories), expands templates and slots recursively, and writes the result to the output directory. Other files are copied as-is.
@@ -365,13 +365,13 @@ The CLI walks every `.html` file in the source tree (skipping `_*` files and dir
 
 9. **`<slot name="head">` inside a body-fragment layout.** `<slot>` only fills where it sits in the DOM. To inject head content per-page, write it directly in the page's `<head>`.
 
-10. **Runtime + Alpine timing.** Alpine auto-initializes before tmpla finishes expanding body templates, so x-data inside expanded content is missed. Pattern:
+10. **Runtime + Alpine timing.** Alpine auto-initializes before templa finishes expanding body templates, so x-data inside expanded content is missed. Pattern:
 
    ```html
-   <script src="../tmpla.js"></script>
+   <script src="../templa.js"></script>
    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
    <script>
-     tmpla.start(() => window.Alpine && Alpine.initTree(document.body));
+     templa.start(() => window.Alpine && Alpine.initTree(document.body));
    </script>
    ```
 
@@ -383,14 +383,14 @@ The CLI walks every `.html` file in the source tree (skipping `_*` files and dir
 
 ```bash
 # Install
-npm install @yjmtmtk/tmpla
+npm install @yjmtmtk/templa
 
 # Build
-npx @yjmtmtk/tmpla build -i ./src -o ./dist
+npx @yjmtmtk/templa build -i ./src -o ./dist
 
 # Version
-npx @yjmtmtk/tmpla --version
+npx @yjmtmtk/templa --version
 
 # CDN (runtime)
-# <script src="https://cdn.jsdelivr.net/npm/@yjmtmtk/tmpla/tmpla.min.js"></script>
+# <script src="https://cdn.jsdelivr.net/npm/@yjmtmtk/templa/templa.min.js"></script>
 ```

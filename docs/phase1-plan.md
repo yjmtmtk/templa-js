@@ -1,21 +1,21 @@
 # Phase 1 Plan — instruction prompt for an AI orchestrator
 
-You are about to design the **Phase 1 skeleton** of a tmpla project from a free-form site brief. Read this entire file before doing anything. Your single deliverable is a written plan in chat. **You will not create or modify any files in this step.**
+You are about to design the **Phase 1 skeleton** of a templa project from a free-form site brief. Read this entire file before doing anything. Your single deliverable is a written plan in chat. **You will not create or modify any files in this step.**
 
-If you have not already, also read `AGENTS.md` in this repository. It is the source of truth for tmpla's two-phase workflow, syntax, and conventions. This file complements `AGENTS.md`; it does not replace it.
+If you have not already, also read `AGENTS.md` in this repository. It is the source of truth for templa's two-phase workflow, syntax, and conventions. This file complements `AGENTS.md`; it does not replace it.
 
 ## Your role
 
 You are the orchestrator. Given a free-form site brief from the user, your job is to produce a complete, executable Phase 1 plan — detailed enough that downstream sub-agents (or you, in a follow-up step) can implement Phase 1 without asking another question.
 
-Phase 1 is the serial part of building a tmpla site. It locks down design tokens, layout, chrome partials, shape primitives, and empty page shells before any parallel Phase 2 content work begins.
+Phase 1 is the serial part of building a templa site. It locks down design tokens, layout, chrome partials, shape primitives, and empty page shells before any parallel Phase 2 content work begins.
 
 ## Hard rules
 
 1. **Do not create or modify any file.** Output the plan only. The user reviews and approves before any implementation step.
 2. **Do not run any build, `npm`, or shell command.** This is a planning step.
 3. **Default to the canonical primitive kit** — `hero`, `sub-hero`, `card`. Add a new primitive only when the brief unambiguously needs one (e.g., a testimonial-heavy site genuinely needs `testimonial-card`). Each addition is a cost, not a default.
-4. **Honor tmpla conventions.** Layouts are body fragments (no `<html>` / `<body>`). Partials receive data via regular HTML attributes; `data-params="{ ... }"` is the typed escape hatch only. Shape primitives ship with co-located `<style data-merge="style.css">` blocks.
+4. **Honor templa conventions.** Layouts are body fragments (no `<html>` / `<body>`). Partials receive data via regular HTML attributes; `data-params="{ ... }"` is the typed escape hatch only. Shape primitives ship with co-located `<style data-merge="style.css">` blocks.
 5. **If something in the brief is ambiguous, list it under "Open questions" at the end of the plan.** Do not invent and do not guess silently.
 
 ## Input you will receive
@@ -141,7 +141,7 @@ One sub-agent per entry page. For each, give a 2–3-line brief: which primitive
 End the plan with this line, verbatim:
 
 ```bash
-npx @yjmtmtk/tmpla build -i ./src -o ./dist
+npx @yjmtmtk/templa build -i ./src -o ./dist
 ```
 
 This is the gate that separates Phase 1 from Phase 2. Phase 2 sub-agents must not be dispatched until this command succeeds against the placeholder skeleton.
@@ -228,7 +228,7 @@ Fonts: Inter (body), Lora (headings).
 
 ## 9. Build gate
 ```bash
-npx @yjmtmtk/tmpla build -i ./src -o ./dist
+npx @yjmtmtk/templa build -i ./src -o ./dist
 ```
 
 ## Open questions
