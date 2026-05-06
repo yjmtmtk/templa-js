@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My templa site</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <template src="_layouts/main.html">
+    <template slot="header">
+      <template src="_partials/header.html" title="My templa site"></template>
+    </template>
+
+    <h1>Hello, templa</h1>
+    <p>Edit <code>src/index.html</code> to start building.</p>
+
+    <template slot="footer">
+      <template src="_partials/footer.html"></template>
+    </template>
+  </template>
+
+  <script src="./js/templa.js"></script>
+  <script type="module">await templa.start();</script>
+</body>
+</html>
