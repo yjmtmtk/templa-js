@@ -11,6 +11,7 @@
     "bin/",
     "README.md",
     "AGENTS.md",
+    "PLANNER.md",
     "LICENSE"
   ],
   "keywords": [

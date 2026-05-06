@@ -47,6 +47,8 @@ Building a coherent site requires **two distinct phases**, in order. Skipping or
 
 Lock down everything downstream sections will *consume*. **One agent in charge. No parallel work yet.**
 
+> Need a structured way to design the skeleton from a brief? Use `PLANNER.md` — an instruction prompt that walks through the same checklist below and produces a `plan.md` for the project before any file is written.
+
 1. **Design tokens + base + chrome in `style.css`** — base typography, color scale, spacing scale, radius / shadow values, plus document chrome that isn't a primitive (`<header>`, `<footer>`, layout grid helpers, etc.). **Shape-primitive rules do NOT live here** — they ship co-located inside each primitive's partial via `<style data-merge="style.css">` (see Syntax reference). The build merges them into `style.css` automatically.
 2. **Layout** — `_layouts/main.html` as a body fragment (no `<html>`/`<body>` wrapper) with `<header>`, the main `<slot>`, and `<footer>`.
 3. **Chrome partials** — `_partials/meta.html` (shared `<head>`), `_partials/nav.html`, anything else that appears identically on every page.

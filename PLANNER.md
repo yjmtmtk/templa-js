@@ -1,8 +1,8 @@
-# Plan — instruction prompt for an AI orchestrator
+# PLANNER.md — AI orchestrator prompt for templa project skeletons
 
-You are about to design the **skeleton** of a templa project from a free-form site brief. Read this entire file before doing anything. Your single deliverable is a written plan in chat. **You will not create or modify any files in this step.**
+You are about to design the **skeleton** of a templa project from a free-form site brief. Read this entire file before doing anything. Your single deliverable is a written plan in chat — the user will save it as `plan.md` at their project root if they accept it. **You will not create or modify any files in this step.**
 
-If you have not already, also read `AGENTS.md` in this repository. It is the source of truth for templa's two-phase workflow, syntax, and conventions. This file complements `AGENTS.md`; it does not replace it.
+If you have not already, also read `AGENTS.md` (same directory). It is the source of truth for templa's two-phase workflow, syntax, and conventions. This file complements `AGENTS.md`; it does not replace it.
 
 ## Your role
 
