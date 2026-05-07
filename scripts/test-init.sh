@@ -8,9 +8,10 @@ cd "$TMP"
 # --- without --ai: AGENTS.md and PLANNER.md must NOT appear ---
 node "$ROOT/bin/templa.js" init
 test -f src/index.html
-test -f src/_layouts/main.html
-test -f src/_partials/header.html
-test -f src/_partials/footer.html
+test -f src/about.html
+test -f src/_partials/common-header.html
+test -f src/_partials/common-layout.html
+test -f src/_partials/common-footer.html
 test -f src/css/style.css
 test -f src/js/templa.js
 test ! -e src/js/.gitkeep
@@ -20,10 +21,17 @@ test ! -e PLANNER.md
 # Build must pass against the freshly-init'd project
 node "$ROOT/bin/templa.js" build
 test -f dist/index.html
+test -f dist/about.html
 test -f dist/css/style.css
 test -f dist/js/templa.js
+# index page rendered with its sections
 grep -q "Hello, templa" dist/index.html
-grep -q "<h1>My templa site</h1>" dist/index.html
+grep -q "<strong>My templa site</strong>" dist/index.html
+grep -q "What you get" dist/index.html
+# about page rendered with the shared subhero (title="About") + about-body
+grep -q "common-subhero" dist/about.html
+grep -q "About</h1>" dist/about.html
+grep -q "starter scaffold" dist/about.html
 
 # --- with --ai: AGENTS.md and PLANNER.md appear at project root ---
 TMP2=$(mktemp -d)
