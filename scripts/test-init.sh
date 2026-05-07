@@ -24,6 +24,9 @@ test -f dist/index.html
 test -f dist/about.html
 test -f dist/css/style.css
 test -f dist/js/templa.js
+# section styles must merge into the linked stylesheet, not to a stray dist/style.css
+! test -e dist/style.css
+grep -q "\.index-hero" dist/css/style.css
 # index page rendered with its sections
 grep -q "Hello, templa" dist/index.html
 grep -q "<strong>My templa site</strong>" dist/index.html
