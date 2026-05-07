@@ -66,7 +66,7 @@ For each page, produce **both**:
 
 (a) A small ASCII wireframe showing the visual structure top-to-bottom, including grid arrangements (e.g. cards in 3 columns), and labelling each section. Keep it readable — boxes drawn with `┌─┬─┐` style, ~40–60 chars wide. Show the layout chrome (header, footer) so the sub-agent sees the full page envelope.
 
-(b) A concise section list under the wireframe with one-line notes per section (purpose, primitive used if any, attributes it accepts).
+(b) A concise section list under the wireframe with one-line notes per section (filename, purpose, `common-*` template used if any, attributes it accepts).
 
 Example for a home page:
 
@@ -96,9 +96,9 @@ Example for a home page:
 ```
 
 Sections (top → bottom):
-- hero — primitive, attrs: image / heading / subheading / ctaLabel / ctaHref. Optional fields wrapped in `<template if="ctaLabel">` inside the primitive.
-- "A few favourites" — section with `<h2>` + card-grid of 3 card primitives
-- "Questions" — inline Alpine accordion (no primitive; lives only on this page)
+- `_partials/index-hero.html` — landing hero, attrs image / heading / subheading / ctaLabel / ctaHref. Optional fields wrapped in `<template if="ctaLabel">` inside the section.
+- `_partials/index-favourites.html` — section with `<h2>` + grid of 3 inline `<article>` cards (no separate template; markup lives in this section file)
+- `_partials/index-faq.html` — inline Alpine accordion (lives only on this page)
 
 The wireframe is for both you (the orchestrator confirming structure) and the content sub-agent who will implement the page.
 
@@ -215,8 +215,8 @@ This is the gate that separates skeleton from content fill. Content sub-agents m
 │ FOOTER                               │
 └──────────────────────────────────────┘
 ```
-- hero — primitive, attrs image/heading/subheading/ctaLabel/ctaHref
-- card grid (×3) — uses card primitive
+- `_partials/index-hero.html` — landing hero, attrs image/heading/subheading/ctaLabel/ctaHref
+- `_partials/index-favourites.html` — 3-column grid of inline `<article>` cards
 - faq — inline Alpine accordion
 
 ### about.html
@@ -232,7 +232,7 @@ This is the gate that separates skeleton from content fill. Content sub-agents m
 │ FOOTER                               │
 └──────────────────────────────────────┘
 ```
-- sub-hero — primitive, attrs title/tagline
+- `_partials/common-subhero.html` — shared subhero, attrs title/tagline
 - prose — `<article class="prose">` with 4 paragraphs and 1 image
 
 ## 4. Section list per page
