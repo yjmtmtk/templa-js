@@ -304,7 +304,7 @@ Decision rule: templa for everything that can be resolved before the user clicks
 If you use Claude Code, Cursor, Aider, Copilot, or similar AI tools, two files do most of the work:
 
 - [`AGENTS.md`](./AGENTS.md) — file conventions, two-phase workflow, syntax, common pitfalls. Drop it into a templa project root and the agent reads it as the source of truth.
-- [`PLANNER.md`](./PLANNER.md) — an instruction prompt that turns a free-form site brief into a concrete `plan.md` (page set, wireframes, primitive kit, design tokens, file inventory) before any file is written.
+- [`PLANNER.md`](./PLANNER.md) — an instruction prompt that turns a free-form site brief into a concrete `plan.md` (page set, wireframes, section list, design tokens, file inventory) before any file is written.
 
 ## Philosophy
 
