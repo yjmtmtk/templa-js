@@ -1,38 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>templa — home</title>
-  <template src="_partials/meta.html"></template>
-  <script src="../templa.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
-  <script type="module">
-    await templa.start();
-    window.Alpine && Alpine.initTree(document.body);
-  </script>
+  <template src="_partials/common-head.html" title="Home"></template>
 </head>
-<body data-page="home">
-  <template src="_layouts/main.html">
-    <template slot="nav">
-      <template src="_partials/nav.html"></template>
-    </template>
-
-    <template src="_partials/hero.html"
-      heading="Compose HTML in HTML"
-      subheading="A tiny template loader powered by the native template element."></template>
-
-    <section class="cards">
-      <template src="_partials/card.html"
-        title="Tiny"
-        body="Around 200 lines of source, ~3KB gzipped, zero dependencies."></template>
-      <template src="_partials/card.html"
-        title="Native"
-        body="Built on the standard &lt;template&gt; element and Web Components-style slots — no custom tags, no DSL."></template>
-      <template src="_partials/card.html"
-        title="Two modes"
-        body="Same syntax in the runtime script and in the build CLI. Pick whichever fits your deploy."></template>
-    </section>
-
-    <template src="_partials/faq.html"></template>
+<body>
+  <template src="_partials/common-layout.html">
+    <template src="_partials/index-hero.html"></template>
+    <template src="_partials/index-features.html"></template>
+    <template src="_partials/index-cta.html"></template>
   </template>
+  <script src="../templa.js"></script>
+  <script type="module">await templa.start();</script>
 </body>
 </html>

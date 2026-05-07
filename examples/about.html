@@ -1,38 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>templa — about</title>
-  <template src="_partials/meta.html"></template>
+  <template src="_partials/common-head.html" title="About"></template>
+</head>
+<body>
+  <template src="_partials/common-layout.html">
+    <template src="_partials/common-subhero.html" title="About"></template>
+    <template src="_partials/about-body.html"></template>
+  </template>
   <script src="../templa.js"></script>
   <script type="module">await templa.start();</script>
-</head>
-<body data-page="about">
-  <template src="_layouts/main.html">
-    <template slot="nav">
-      <template src="_partials/nav.html"></template>
-    </template>
-
-    <template src="_partials/sub-hero.html"
-      title="About"
-      tagline="A tiny HTML template loader for static sites."></template>
-
-    <article class="prose">
-      <p>
-        templa gives you the reusability of partials and layouts, the brevity
-        of Handlebars-style placeholders, and the slot model of Web Components
-        — all in a single ~3&nbsp;KB script with no dependencies.
-      </p>
-      <p>
-        It runs in the browser for fast iteration, and ships a build CLI for
-        production deploys where SEO and first-paint matter. The same source
-        files work in both modes; you don't rewrite anything to switch.
-      </p>
-      <p>
-        For interactivity, pair templa with
-        <a href="https://alpinejs.dev/" target="_blank" rel="noopener">Alpine.js</a>.
-        Both are HTML-first and require no build step of their own.
-      </p>
-    </article>
-  </template>
 </body>
 </html>
