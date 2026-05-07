@@ -26,8 +26,7 @@ All paths in the plan are relative to the **project root**. The expected layout:
 project-root/
 ├── plan.md            ← this plan, lives here
 ├── src/               ← templa source (build input)
-│   ├── style.css
-│   ├── _layouts/
+│   ├── css/style.css
 │   ├── _partials/
 │   ├── assets/        ← images, copied to dist/ as-is
 │   └── *.html         ← entry pages

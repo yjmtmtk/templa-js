@@ -233,7 +233,7 @@ A partial can carry its own CSS in a `<style>` block tagged with `data-merge="<f
 
 ```html
 <!-- _partials/card.html -->
-<style data-merge="style.css">
+<style data-merge="css/style.css">
   .card { background: #fff; border: 1px solid #ddd; padding: 1rem; }
   .card h3 { margin: 0 0 .5rem; }
 </style>
@@ -243,7 +243,7 @@ A partial can carry its own CSS in a `<style>` block tagged with `data-merge="<f
 </article>
 ```
 
-**Build mode:** the `<style>` block is removed from each card's expanded HTML and appended to `dist/style.css` (created if missing) with a `/* templa merged */` marker.
+**Build mode:** the `<style>` block is removed from each card's expanded HTML and appended to `dist/css/style.css` (created if missing) with a `/* templa merged */` marker.
 
 **Runtime mode:** on the first expansion of a partial with a merge style, the `<style>` block stays in place (browsers handle `<style>` globally regardless of position); subsequent expansions of the same partial drop it. The `data-merge` attribute is the dedupe signal — the target value is a build-only hint.
 
@@ -272,7 +272,7 @@ For **conditional attributes** (`disabled` on/off, `target="_blank"` only when e
 ### Layouts and slots
 
 ```html
-<!-- _layouts/page.html -->
+<!-- _partials/page.html -->
 <header><slot name="nav"></slot></header>
 <main><slot></slot></main>
 <footer>&copy; 2026</footer>
@@ -280,7 +280,7 @@ For **conditional attributes** (`disabled` on/off, `target="_blank"` only when e
 
 ```html
 <!-- a page using the layout -->
-<template src="_layouts/page.html">
+<template src="_partials/page.html">
   <template slot="nav">…</template>     <!-- → <slot name="nav"> -->
   <h1>…</h1>                            <!-- → <slot> (default) -->
   <p>…</p>                              <!-- → <slot> (default) -->
@@ -350,7 +350,7 @@ The CLI walks every `.html` file in the source tree (skipping `_*` files and dir
 
 3. **Forgot the `_` prefix.** A partial referenced by other pages but living at `src/header.html` will be written to `dist/header.html`, leaking your shell. Rename or move into `_partials/`.
 
-4. **Wrong relative path in a layout.** A layout in `_layouts/` calling `<template src="_partials/x.html">` resolves to `_layouts/_partials/x.html` (which doesn't exist). Use `../_partials/x.html`.
+4. **Wrong relative path in a partial.** `<template src="X">` is resolved relative to the file containing the tag. A partial in a nested directory referencing `_partials/x.html` as a bare name resolves wrongly (templa looks under the nested dir, not the project root). Keep partials flat in `_partials/` and reference siblings by bare filename to avoid this.
 
 5. **`{{key}}` placeholders surviving into the output as literal text.** The partial received no value for that key. Pass it as a regular attribute (`title="Home"`). The pre-0.2.0 `params="{ ... }"` and pre-0.5.0 `data-params="{ ... }"` forms have been removed; all data flows through plain attributes.
 
