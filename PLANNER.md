@@ -8,14 +8,14 @@ If you have not already, also read `AGENTS.md` (same directory). It is the sourc
 
 You are the orchestrator. Given a free-form site brief, your job is to produce a complete, executable plan — detailed enough that downstream sub-agents (or you, in a follow-up step) can implement the skeleton without asking another question.
 
-The plan covers the serial part of building a templa site: design tokens, layout, chrome partials, shape primitives, and empty page shells. Parallel content fill happens after this plan is approved and the skeleton built.
+The plan covers the serial part of building a templa site: design tokens, layout, chrome partials, and empty page shells. Parallel content fill happens after this plan is approved and the skeleton built.
 
 ## Hard rules
 
 1. **Do not create or modify any file.** Output the plan only. The user reviews and approves before any implementation step.
 2. **Do not run any build, `npm`, or shell command.** This is a planning step.
-3. **Default to the canonical primitive kit** — `hero`, `sub-hero`, `card`. Add a new primitive only when the brief unambiguously needs one (e.g., a testimonial-heavy site genuinely needs `testimonial-card`). Each addition is a cost, not a default.
-4. **Honor templa conventions.** Layouts are body fragments (no `<html>` / `<body>`). Partials receive data via plain HTML attributes; `data-*` attributes are reserved as metadata and skipped. Shape primitives ship with co-located `<style data-merge="style.css">` blocks.
+3. **Default to the canonical `common-*` set** — `common-head`, `common-layout`, `common-header`, `common-footer`, `common-subhero`. Add a new `common-*` template only when the brief unambiguously needs one (e.g. a recurring site-wide CTA banner). Each addition is a cost, not a default.
+4. **Honor templa conventions.** `common-layout.html` is a body fragment (no `<html>` / `<body>`). Partials receive data via plain HTML attributes; `data-*` attributes are reserved as metadata and skipped. Section files ship with co-located `<style data-merge="css/style.css">` blocks and class names matching the filename.
 5. **If something in the brief is ambiguous, list it under "Open questions" at the end of the plan.** Do not invent and do not guess silently.
 
 ## Project layout assumed by this plan
@@ -102,17 +102,13 @@ Sections (top → bottom):
 
 The wireframe is for both you (the orchestrator confirming structure) and the content sub-agent who will implement the page.
 
-### 4. Decide the primitive kit
+### 4. Decide the section list per page
 
-From the section list, infer which shape primitives are needed.
+For each page in §2, list the section files that will exist as `_partials/[pagename]-[sectionname].html`. The wireframe in §3 gives you the order; this step turns that into a flat file list.
 
-- `hero` — large landing-only header (image, headline, CTA)
-- `sub-hero` — compact inner-page header (title + tagline)
-- `card` — reusable item with optional image / title / body / optional price
+Use the shared `common-subhero.html` for inner-page headers — do not introduce per-page subhero variants. Anything else gets its own `[pagename]-[sectionname].html` file.
 
-If a non-default section type recurs across two or more pages (testimonials, blog post snippets, team members, menu items, pricing rows), promote it to a new primitive. Otherwise inline it in the single page that needs it.
-
-For each primitive, name the pages and sections that consume it. If a primitive has optional fields (e.g. `ctaLabel`, `image`, `price`), the primitive's HTML wraps them in `<template if="key">…</template>` so an unspecified attribute simply omits that markup.
+If a non-trivial section type would recur across two or more pages (testimonials, blog post snippets, team-member cards, pricing rows), surface it as an "open question" at the end of the plan rather than silently inventing a new `common-*`. The orchestrator decides whether to extend Phase 1 with a new `common-*` template or to inline the duplication across pages.
 
 ### 5. Decide design tokens
 
@@ -121,41 +117,63 @@ Pick concrete values; do not stay vague. Provide all of:
 - **Color** — 4–6 CSS-variable tokens with real hex codes that suit the inferred vibe:
   `--color-bg`, `--color-surface`, `--color-text`, `--color-muted`, `--color-accent`, `--color-accent-dark`, `--color-border`.
 - **Typography** — one serif heading family + one sans body family. Use real Google Fonts names with the matching `family=` URL.
-- **Spacing scale** — base unit and a named scale `--space-1` … `--space-7` (`.5rem` … ~`6rem`).
+- **Spacing scale** — `--space-1` … `--space-7` (`.25rem` … ~`4rem`). The default scaffold ships these; tune values to fit the brief.
 - **Radius / shadow** — 1–2 values each.
 - **Container widths** — `--max-w` (text column, ~720px) and optionally `--max-w-wide` (~1100px).
 
 If the brief was vague on aesthetics, infer from the project type and brand vibe and note explicitly that the values are an inference the user can override.
 
-### 6. Decide layout and chrome
+### 6. Decide the `common-*` templates
 
 (All paths below are project-root relative.)
 
-- **`src/_layouts/main.html`** — a body fragment (no `<html>` / `<body>` wrapper). Describe its slot shape. Almost always: `<header>` with brand + named `nav` slot, `<main>` with default slot, static `<footer>`.
-- **`src/_partials/meta.html`** — `<head>` chrome: charset, viewport, theme-color, font preconnect/links, `./style.css` link.
-- **`src/_partials/nav.html`** — navigation anchors, each with `data-nav="<page-id>"` for active styling driven by `body[data-page="..."]` selectors in `src/style.css`.
+- **`src/_partials/common-head.html`** — `<head>` chrome: charset, viewport, theme-color, font preconnect/links, `./css/style.css` link. Title comes from the page's `<template src="…common-head.html" title="…">` attribute.
+- **`src/_partials/common-layout.html`** — body fragment: invokes `common-header`, wraps a default `<slot>` in `<main>`, invokes `common-footer`.
+- **`src/_partials/common-header.html`** — `<header>` element: brand + navigation anchors, each with `data-nav="<page-id>"` for active styling driven by `body[data-page="..."]` selectors in `src/css/style.css`.
+- **`src/_partials/common-footer.html`** — `<footer>` element with copyright/social, identical on every page.
+- **`src/_partials/common-subhero.html`** — `<section>` for inner-page headers, parameterized by `title` and optionally `bg`. Used by every page except the home page.
+
+A project may add more `common-*` (rare). If you add any, justify it in §7's open questions.
 
 ### 7. Produce the file inventory
 
-A complete listing of every file the skeleton will create, **paths relative to the project root**. Each line: path + a one-line role comment. Group by purpose. Page entries should hint at the section composition that the next step will fill in. Example skeleton:
+A complete listing of every file the skeleton will create, **paths relative to the project root**. Each line: path + a one-line role comment. Group by purpose. Example skeleton for a 3-page site (home, about, contact):
 
 ```text
-src/style.css                       // tokens + base + chrome (source of truth)
-src/_layouts/main.html              // body fragment — header / main slot / footer
-src/_partials/meta.html             // <head> chrome (charset, viewport, fonts, css link)
-src/_partials/nav.html              // global nav with data-nav="<page>" attributes
-src/_partials/hero.html             // primitive: landing hero (co-located styles)
-src/_partials/sub-hero.html         // primitive: inner-page header
-src/_partials/card.html             // primitive: reusable item card
-src/index.html                      // shell — sections: hero, featured cards, faq
-src/about.html                      // shell — sections: sub-hero, prose
-src/contact.html                    // shell — sections: sub-hero, contact, map
-src/assets/                         // images / fonts / etc., copied to dist/ as-is
+src/css/style.css                       // tokens + base + chrome (locked in Phase 1)
+src/_partials/common-head.html          // <head> chrome (charset, viewport, fonts, css link)
+src/_partials/common-layout.html        // body skeleton: header / main slot / footer
+src/_partials/common-header.html        // <header>: brand + nav with data-nav
+src/_partials/common-footer.html        // <footer>: copyright + socials
+src/_partials/common-subhero.html       // shared inner-page subhero (title, optional bg)
+src/_partials/index-hero.html           // index — landing hero (sub-agent owned)
+src/_partials/index-features.html       // index — features list
+src/_partials/index-cta.html            // index — closing CTA
+src/_partials/about-body.html           // about — prose / company story
+src/_partials/contact-form.html         // contact — contact form
+src/_partials/contact-map.html          // contact — embedded map
+src/index.html                          // page entry — sections: hero, features, cta
+src/about.html                          // page entry — sections: subhero, body
+src/contact.html                        // page entry — sections: subhero, form, map
+src/assets/                             // images / fonts / etc., copied to dist/ as-is
 ```
 
-### 8. Sketch the content-fill dispatch
+Every `[pagename]-[sectionname].html` listed above is a unit of Phase 2 sub-agent work. Every `common-*.html` is locked after Phase 1.
 
-One sub-agent per entry page. For each, give a 2–3-line brief: which primitives the page composes, which sections need inline content, any image/asset references, any Alpine.js bits to author inline.
+### 8. Sketch the section-fill dispatch
+
+One sub-agent per `[pagename]-[sectionname].html` file. For each, give a 2–3-line brief: what the section contains, which design tokens to reach for, any image/asset references, any Alpine.js bits to author inline.
+
+The dispatch is genuinely parallel — none of the section files share file content, so sub-agents never collide.
+
+Example:
+
+- Sub-agent A → `src/_partials/index-hero.html` — large landing hero, headline + subhead + CTA button. Use `--space-7` top padding, `--font-display` for the headline.
+- Sub-agent B → `src/_partials/index-features.html` — 3-column grid of feature cards (inline `<article>` markup; no shared partial). Use `--space-5` between rows.
+- Sub-agent C → `src/_partials/index-cta.html` — closing CTA strip with `--color-accent` background.
+- Sub-agent D → `src/_partials/about-body.html` — prose-style "company story" article with one image.
+- Sub-agent E → `src/_partials/contact-form.html` — `<form action="contact.php">` with name/email/message fields, inline Alpine validation if the brief asks.
+- Sub-agent F → `src/_partials/contact-map.html` — Google Maps `<iframe>` embed.
 
 ### 9. State the build gate command
 
@@ -217,10 +235,9 @@ This is the gate that separates skeleton from content fill. Content sub-agents m
 - sub-hero — primitive, attrs title/tagline
 - prose — `<article class="prose">` with 4 paragraphs and 1 image
 
-## 4. Primitive kit
-- hero  → consumed by index.html (hero section)
-- sub-hero → consumed by about.html, contact.html
-- card → consumed by index.html (featured ×3)
+## 4. Section list per page
+- index — sections: index-hero, index-features, index-cta
+- about — sections: common-subhero (title="About"), about-body
 
 ## 5. Design tokens
 ```css
@@ -233,19 +250,23 @@ This is the gate that separates skeleton from content fill. Content sub-agents m
 Fonts: Inter (body), Lora (headings).
 (Note: tokens inferred from the "warm, slow" vibe; override if you want.)
 
-## 6. Layout and chrome
-- src/_layouts/main.html — header (brand + nav slot), main (default slot), footer (static)
-- src/_partials/meta.html — charset, viewport, theme-color, fonts, ./style.css
-- src/_partials/nav.html — 3 entries with data-nav
+## 6. common-* templates
+- src/_partials/common-head.html — charset, viewport, theme-color, fonts, ./css/style.css
+- src/_partials/common-layout.html — header / <main><slot/></main> / footer
+- src/_partials/common-header.html — brand + nav with data-nav
+- src/_partials/common-footer.html — copyright + socials
+- src/_partials/common-subhero.html — inner-page subhero (title attribute)
 
 ## 7. File inventory
 ```text
 … full listing per the example above …
 ```
 
-## 8. Content-fill dispatch
-- Sub-agent A → src/index.html — composes hero + 3 cards + inline FAQ accordion (Alpine)
-- Sub-agent B → src/about.html — composes sub-hero + prose article with one image
+## 8. Section-fill dispatch
+- Sub-agent A → src/_partials/index-hero.html — landing hero with image + CTA
+- Sub-agent B → src/_partials/index-features.html — 3-column features grid
+- Sub-agent C → src/_partials/index-cta.html — closing CTA strip
+- Sub-agent D → src/_partials/about-body.html — prose "about us" article
 
 ## 9. Build gate
 ```bash
