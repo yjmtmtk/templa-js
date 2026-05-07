@@ -32,74 +32,77 @@ Building a coherent site requires **two distinct phases**, in order. Skipping or
 
 ```
 ┌────────────────────────────┐      ┌────────────────────────────┐
-│  Phase 1 — skeleton        │      │  Phase 2 — content fill    │
+│  Phase 1 — skeleton        │      │  Phase 2 — section fill    │
 │  serial, orchestrator only │  →   │  parallel, sub-agents      │
 │                            │      │                            │
-│  • design tokens           │      │  • write copy into shapes  │
-│  • layout                  │      │  • compose pages           │
-│  • shape primitives        │      │  • call partials w/ params │
-│  • chrome partials         │      │                            │
-│  • empty page shells       │      │  one sub-agent per file    │
+│  • design tokens           │      │  • one sub-agent per       │
+│  • common-* templates      │      │    [page]-[section].html   │
+│  • page entry HTML         │      │  • full HTML + co-located  │
+│  • empty section files     │      │    style per section       │
 └────────────────────────────┘      └────────────────────────────┘
 ```
 
 ### Phase 1 — skeleton (serial, orchestrator only)
 
-Lock down everything downstream sections will *consume*. **One agent in charge. No parallel work yet.**
+Lock down everything Phase 2 sub-agents will *consume*. **One agent in charge. No parallel work yet.**
 
 > Need a structured way to design the skeleton from a brief? Use `PLANNER.md` — an instruction prompt that walks through the same checklist below and produces a `plan.md` for the project before any file is written.
 
-1. **Design tokens + base + chrome in `style.css`** — base typography, color scale, spacing scale, radius / shadow values, plus document chrome that isn't a primitive (`<header>`, `<footer>`, layout grid helpers, etc.). **Shape-primitive rules do NOT live here** — they ship co-located inside each primitive's partial via `<style data-merge="style.css">` (see Syntax reference). The build merges them into `style.css` automatically.
-2. **Layout** — `_layouts/main.html` as a body fragment (no `<html>`/`<body>` wrapper) with `<header>`, the main `<slot>`, and `<footer>`.
-3. **Chrome partials** — `_partials/meta.html` (shared `<head>`), `_partials/nav.html`, anything else that appears identically on every page.
-4. **Shape primitives** — self-contained visual building blocks (HTML + co-located CSS in the same file). A typical kit:
+1. **Design tokens in `src/css/style.css`** — base typography, color scale, spacing scale (`--space-1` … `--space-7`), radius / shadow values, and document chrome (`<header>`, `<footer>`, layout grid helpers). Per-section visual rules do NOT live here — they ship co-located inside each section's partial via `<style data-merge="css/style.css">`. The build merges them into `style.css` automatically.
 
-   | Partial | Purpose |
+2. **The five `common-*` templates in `src/_partials/`** — these are the project's chrome and shared section vocabulary. Lock them in Phase 1; sub-agents do not touch them.
+
+   | File | Purpose |
    |---|---|
-   | `_partials/hero.html` | Landing-page hero (large, full-bleed) |
-   | `_partials/sub-hero.html` | Inner-page header (smaller, page title + tagline) |
-   | `_partials/card.html` | Reusable card with `title` / `body` / optional `image` params |
-   | `_partials/section.html` | Generic titled section wrapper (optional) |
-   | `_partials/button.html` | Call-to-action button (optional) |
+   | `common-head.html` | Everything inside `<head>` except doctype/title — charset, viewport, font links, stylesheet link |
+   | `common-layout.html` | Body skeleton: invokes `common-header`, wraps a default `<slot>` in `<main>`, invokes `common-footer` |
+   | `common-header.html` | The site `<header>` element (brand + nav) |
+   | `common-footer.html` | The site `<footer>` element |
+   | `common-subhero.html` | Shared inner-page subhero, parameterized via `title` (and optionally `bg`) |
 
-   Add primitives only when the design clearly needs them. Resist over-design: `card`, `hero`, `sub-hero` cover most sites.
+   A project may add more `common-*` files (e.g. `common-cta-banner.html`) only by orchestrator decision — never by sub-agent invention.
 
-5. **Page shells** — every entry HTML file (`index.html`, `about.html`, …) exists as a thin `<template src>` composition, with placeholder slot fillers if the content isn't ready.
+3. **Page entry HTML files** — each `src/[pagename].html` is a thin composition: an HTML5 document whose `<head>` calls `common-head`, whose `<body>` calls `common-layout` containing an ordered list of `<template src="_partials/[pagename]-[section].html">` lines. No inline section content.
+
+4. **Empty section files** — every `_partials/[pagename]-[section].html` referenced by a page exists as a placeholder file (a single HTML comment is enough) so `npx @yjmtmtk/templa build` succeeds against the skeleton.
 
 Phase 1 is complete when:
 
 - `npx @yjmtmtk/templa build` succeeds — **this is the gate; do not dispatch Phase 2 sub-agents until it passes.** Phase 2 assumes a sound skeleton; starting parallel work on a broken one produces incoherent output that's hard to recover from.
-- The output renders cohesively even with placeholder copy.
-- Every shape that downstream sections might need is already a partial.
+- The output renders cohesively even with placeholder section content.
+- Every section file the pages reference exists on disk.
 
-### Phase 2 — content fill (parallel, sub-agents)
+### Phase 2 — section fill (parallel, sub-agents)
 
-With the skeleton locked, dispatch sub-agents to fill in the actual content. **One sub-agent per content unit, all running concurrently.**
+With the skeleton locked, dispatch sub-agents to fill in each section. **One sub-agent per `_partials/[pagename]-[section].html` file, all running concurrently.**
+
+A sub-agent's brief is exactly:
+- The single file path it owns (e.g. `_partials/index-hero.html`).
+- A 2–3 line description of what the section should contain.
+- The page's existing wireframe / surrounding context (so it knows what comes before and after, but not so it can edit those).
 
 Sub-agents may:
-
-- Edit one page's body — slot fillers between `<template src="_layouts/...">` tags.
-- Create a new page by composing existing shapes.
-- Pass data to shape partials by adding regular attributes (`title="..." body="..."`). Conditionals are existence-based, so any non-empty string is truthy. See the Syntax reference.
-- Write page-specific copy and small page-specific styles inline.
+- Write the full HTML for their section, including a `<style data-merge="css/style.css">` block with section-scoped rules.
+- Use design tokens defined in `style.css` (`var(--space-*)`, color tokens, etc.).
+- Pick a class name matching the file (`.index-hero` for `index-hero.html`).
 
 Sub-agents must **not**:
-
-- Touch `style.css` (design tokens, base, chrome — locked in phase 1).
-- Touch any primitive partial (the HTML *and* its co-located `<style data-merge>` are the contract).
-- Touch `_layouts/`.
-- Touch any shape primitive in `_partials/`.
-- Invent a new shape primitive. If a sub-agent decides one is needed, **stop, escalate to the orchestrator** for a brief phase 1.5 (extend the skeleton serially), then resume phase 2.
+- Touch `style.css` (design tokens — locked in Phase 1).
+- Touch any `common-*.html` file.
+- Touch any other `[pagename]-[section].html` owned by another sub-agent.
+- Touch page entry HTML files (`src/index.html`, `src/about.html`, …).
+- Reference another section file via `<template src>` (sections are leaves, not composers).
+- Invent a new `common-*` template. If a sub-agent decides one is needed, **stop, escalate to the orchestrator** for a brief Phase 1.5 (extend the skeleton serially), then resume Phase 2.
 
 ### Why this order matters
 
-Parallel agents have no shared visual context. Started before the skeleton locks the design system and shape vocabulary, each agent will:
+Parallel sub-agents have no shared visual context. Started before the skeleton locks the design tokens and chrome, each agent will:
 
 - Pick its own typography and spacing → site looks Frankensteined.
-- Reinvent card and section shapes → CSS bloats, components don't compose.
+- Reinvent header/footer shapes → CSS bloats, components don't compose.
 - Make inconsistent inner-page headers → no rhythm between pages.
 
-The **sub-hero** pattern is the canonical example. Define it once in phase 1; every inner page calls it in phase 2 → consistent inner-page chrome with zero coordination overhead between sub-agents.
+The **`common-subhero.html`** pattern is the canonical example. Define it once in Phase 1; every inner page calls it in Phase 2 → consistent inner-page chrome with zero coordination overhead between sub-agents.
 
 ---
 
@@ -107,81 +110,74 @@ The **sub-hero** pattern is the canonical example. Define it once in phase 1; ev
 
 ```
 src/
-├── index.html              ← entry page (written to dist/)
-├── about.html              ← entry page
-├── style.css               ← design tokens + base + chrome (phase 1 only;
-                              primitive rules are co-located in their partials)
-├── _layouts/               ← layouts (skipped from output)
-│   └── main.html
+├── index.html              ← page entry (written to dist/)
+├── about.html              ← page entry
+├── css/style.css           ← design tokens + base + chrome (locked in Phase 1)
 └── _partials/              ← partials (skipped from output)
-    ├── meta.html           ← chrome
-    ├── nav.html            ← chrome
-    ├── hero.html           ← shape primitive
-    ├── sub-hero.html       ← shape primitive
-    ├── card.html           ← shape primitive
-    └── …content sections…
+    ├── common-head.html        ← <head> chrome
+    ├── common-layout.html      ← body skeleton with <main><slot/></main>
+    ├── common-header.html      ← <header> chrome
+    ├── common-footer.html      ← <footer> chrome
+    ├── common-subhero.html     ← shared inner-page subhero
+    ├── index-hero.html         ← page-specific section (sub-agent owned)
+    ├── index-features.html
+    ├── index-cta.html
+    └── about-body.html
 ```
 
 - Files and directories starting with `_` are partials and are **not copied** to the build output. Reference them with relative paths.
 - Entry pages live at any non-underscore path under the source root.
-- `<template src="X">` inside a partial is resolved relative to **the file containing the tag**, not the entry page. A layout in `_layouts/` referencing `_partials/foo.html` must write `../_partials/foo.html`.
+- `<template src="X">` inside a partial is resolved relative to **the file containing the tag**, not the entry page. `common-layout.html` lives in `_partials/` so it references its siblings as `<template src="common-header.html">` (no `_partials/` prefix). Page entries live at `src/`, so they reference partials as `<template src="_partials/common-head.html">`.
+- Section file class names match the filename: `_partials/index-hero.html` styles `.index-hero`. This makes the cascade easy to audit and prevents class collisions across pages.
+- The `data-merge` attribute on a section's `<style>` block is the **dist-relative path** to the linked stylesheet — e.g. `data-merge="css/style.css"` when the page links `./css/style.css`. Mismatched paths cause merged styles to land in a file the page doesn't load.
 
 ---
 
 ## Composition pattern
 
-Every page is a thin composition. Sections and primitives are partials.
+Every page is a thin HTML5 document whose body is a `common-layout` invocation containing an ordered list of section partials.
 
 ```html
 <!-- src/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>Home</title>
-  <template src="_partials/meta.html"></template>
-  <link rel="stylesheet" href="./style.css" />
+  <template src="_partials/common-head.html" title="Home"></template>
 </head>
-<body data-page="home">
-  <template src="_layouts/main.html">
-    <template slot="nav">
-      <template src="_partials/nav.html"></template>
-    </template>
-
-    <template src="_partials/hero.html"
-      heading="Compose HTML in HTML"
-      subheading="A tiny template loader."></template>
-
-    <section class="cards">
-      <template src="_partials/card.html"
-        title="Tiny"
-        body="~3KB gzipped, zero dependencies."></template>
-      <template src="_partials/card.html"
-        title="Native"
-        body="Built on the standard template element."></template>
-    </section>
+<body>
+  <template src="_partials/common-layout.html">
+    <template src="_partials/index-hero.html"></template>
+    <template src="_partials/index-features.html"></template>
+    <template src="_partials/index-cta.html"></template>
   </template>
+  <script src="./js/templa.js"></script>
+  <script type="module">await templa.start();</script>
 </body>
 </html>
 ```
 
 ```html
-<!-- src/_layouts/main.html — body fragment, NOT a full document -->
-<header><nav><slot name="nav"></slot></nav></header>
-<main><slot></slot></main>
-<footer><small>&copy; 2026</small></footer>
+<!-- src/_partials/common-layout.html — body fragment, NOT a full document -->
+<template src="common-header.html"></template>
+<main>
+  <slot></slot>
+</main>
+<template src="common-footer.html"></template>
 ```
 
 ```html
-<!-- src/_partials/card.html — focused, parameterized, self-styling -->
-<style data-merge="style.css">
-  .card { background: #fff; border: 1px solid #ddd; padding: 1rem; }
-  .card h3 { margin: 0 0 .5rem; }
+<!-- src/_partials/index-hero.html — focused, self-styling, leaf section -->
+<style data-merge="css/style.css">
+  .index-hero { padding: var(--space-6) 0 var(--space-5); text-align: center; }
+  .index-hero h1 { margin: 0 0 var(--space-2); font-size: 2rem; }
 </style>
-<article class="card">
-  <h3>{{title}}</h3>
-  <p>{{body}}</p>
-</article>
+<section class="index-hero">
+  <h1>Hello, templa</h1>
+  <p>A tiny HTML template loader.</p>
+</section>
 ```
+
+A page's diff when "add a section" is requested: 1 new file in `_partials/` plus 1 new line in the page's body.
 
 ---
 
@@ -253,7 +249,7 @@ A partial can carry its own CSS in a `<style>` block tagged with `data-merge="<f
 
 A `<style>` without `data-merge` stays inline as written.
 
-When to use: any partial whose presence implies its own visual rules. Co-locating keeps the shape primitive a single self-contained unit and matches Phase 1's "shape primitives carry their own design".
+When to use: any partial whose presence implies its own visual rules. Co-locating keeps each section a single self-contained unit and matches Phase 1's design token discipline.
 
 ### Conditionals
 
@@ -348,9 +344,9 @@ The CLI walks every `.html` file in the source tree (skipping `_*` files and dir
 
 ## Pitfalls — read before debugging
 
-1. **Started phase 2 too early.** If sub-agents are producing visually inconsistent sections, your skeleton wasn't done. Stop, finish phase 1, restart phase 2.
+1. **Started Phase 2 too early.** If sub-agents are producing visually inconsistent sections, your skeleton wasn't done. Stop, finish Phase 1, restart Phase 2.
 
-2. **Sub-agent invented a new primitive.** This silently breaks visual consistency. Audit `_partials/` for new shape files added during phase 2; revert them and escalate to phase 1.5 instead.
+2. **Sub-agent invented a new `common-*` template.** This silently breaks the orchestrator-only contract. Audit `_partials/common-*.html` for new files added during Phase 2; revert them and escalate to Phase 1.5 instead.
 
 3. **Forgot the `_` prefix.** A partial referenced by other pages but living at `src/header.html` will be written to `dist/header.html`, leaking your shell. Rename or move into `_partials/`.
 
@@ -391,6 +387,12 @@ The CLI walks every `.html` file in the source tree (skipping `_*` files and dir
     | `templa.start().then(...)`, `const p = templa.start()`, etc. | left alone — write these only when you intentionally want runtime behaviour preserved |
 
     Stick to the canonical `await templa.start();` form unless you have a reason not to. Anything more complex falls outside the strip and will run at the consumer's page if your build output keeps it.
+
+12. **Sub-agent referenced another section file with `<template src>`.** Sections are leaves; they don't compose other sections. If two sections share content, that content belongs in a `common-*.html` template introduced via Phase 1.5.
+
+13. **Class name doesn't match the filename.** `_partials/index-hero.html` styles must be scoped under `.index-hero`. Different names invite cross-page class collisions and break the audit-by-grep workflow.
+
+14. **Page entry file edited during Phase 2.** Page files are part of the skeleton; only the orchestrator adds, removes, or reorders the `<template src>` lines. A sub-agent that wants to add a new section asks the orchestrator to wire it in, then writes the new partial.
 
 ---
 
