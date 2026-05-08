@@ -402,11 +402,17 @@ function listScaffoldFiles() {
       if (!relBase && entry.name === 'serve.json') continue;
       const abs = path.join(dir, entry.name);
       const rel = relBase ? `${relBase}/${entry.name}` : entry.name;
+      // examples/js/templa.js is a symlink for local preview; it does not
+      // survive `npm pack`, and the package-root templa.js is the canonical
+      // source — pushed explicitly below.
+      if (rel === 'js/templa.js') continue;
       if (entry.isDirectory()) walk(abs, rel);
       else items.push({ src: abs, dest: `src/${rel}` });
     }
   };
   walk(examplesRoot, '');
+
+  items.push({ src: path.join(PKG_ROOT, 'templa.js'), dest: 'src/js/templa.js' });
   return items;
 }
 
