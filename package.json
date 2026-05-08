@@ -1,6 +1,6 @@
 {
   "name": "templa-js",
-  "version": "0.9.2",
+  "version": "0.10.0",
   "description": "A tiny HTML template loader using <template src>. Read as tempura.",
   "main": "templa.js",
   "scripts": {
