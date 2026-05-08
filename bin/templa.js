@@ -103,10 +103,17 @@ function flushMergedStyles(distDir) {
 // statement inside a multi-statement script). Complex usages like
 // `templa.start().then(...)` or `const p = templa.start()` are left
 // alone — they are intentional and the user owns them.
+//
+// As a corollary, the templa.js / templa.min.js asset is dropped from
+// dist when no built HTML references it any more — the file is dead
+// weight once the loader tag is gone. If the user keeps a script via
+// data-keep, the asset is copied through and the parent dir survives.
 const STRIP_TEMPLA_SRC = /<script\b(?![^>]*\bdata-keep\b)[^>]*\bsrc\s*=\s*["'][^"']*\btempla(\.min)?\.js[^"']*["'][^>]*>\s*<\/script>\s*/gi;
 const STRIP_TEMPLA_ONLY_SCRIPT = /<script(?:\s+type\s*=\s*["']module["'])?\s*>\s*(?:await\s+)?templa\.start\s*\(\s*\)\s*;?\s*<\/script>\s*/gi;
 const STRIP_TEMPLA_LINE = /^[ \t]*(?:await\s+)?templa\.start\s*\(\s*\)\s*;?[ \t]*\r?\n?/gm;
 const STRIP_EMPTY_MODULE = /<script\s+type\s*=\s*["']module["']\s*>\s*<\/script>\s*/gi;
+const TEMPLA_ASSET = /^templa(\.min)?\.js$/;
+const HAS_TEMPLA_SCRIPT_REF = /<script\b[^>]*\bsrc\s*=\s*["'][^"']*\btempla(\.min)?\.js[^"']*["']/i;
 
 function stripRuntimeScripts(html) {
   return html
@@ -269,8 +276,10 @@ function isPartial(name) {
 }
 
 function walk(srcDir, distDir) {
-  const stats = { files: 0, partials: 0, copied: 0 };
+  const stats = { files: 0, partials: 0, copied: 0, stripped: 0 };
   const distAbs = path.resolve(distDir);
+  const deferredTempla = [];
+  let anyHtmlKeptTempla = false;
 
   const visit = (dir, outDir) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -288,10 +297,14 @@ function walk(srcDir, distDir) {
         if (isPartial(entry.name)) { stats.partials++; continue; }
         let html = expand(fs.readFileSync(inPath, 'utf8'), dir);
         html = stripRuntimeScripts(html);
+        if (HAS_TEMPLA_SCRIPT_REF.test(html)) anyHtmlKeptTempla = true;
         fs.mkdirSync(path.dirname(outPath), { recursive: true });
         fs.writeFileSync(outPath, html);
         stats.files++;
         console.log(`  ${path.relative(srcDir, inPath)}`);
+      } else if (TEMPLA_ASSET.test(entry.name)) {
+        // Defer: copied below only if a built HTML still references it.
+        deferredTempla.push({ src: inPath, dest: outPath });
       } else {
         fs.mkdirSync(path.dirname(outPath), { recursive: true });
         fs.copyFileSync(inPath, outPath);
@@ -301,6 +314,22 @@ function walk(srcDir, distDir) {
   };
 
   visit(srcDir, distDir);
+
+  if (anyHtmlKeptTempla) {
+    for (const a of deferredTempla) {
+      fs.mkdirSync(path.dirname(a.dest), { recursive: true });
+      fs.copyFileSync(a.src, a.dest);
+      stats.copied++;
+    }
+  } else {
+    stats.stripped = deferredTempla.length;
+    for (const a of deferredTempla) {
+      const d = path.dirname(a.dest);
+      if (fs.existsSync(d) && fs.readdirSync(d).length === 0) {
+        fs.rmdirSync(d);
+      }
+    }
+  }
   return stats;
 }
 
@@ -329,7 +358,33 @@ function build(args) {
   const ms = Date.now() - t0;
 
   console.log('');
-  console.log(`✓ ${stats.files} page(s), ${stats.copied} asset(s), ${stats.partials} partial(s) skipped — ${ms}ms`);
+  const stripped = stats.stripped > 0 ? `, ${stats.stripped} stripped` : '';
+  console.log(`✓ ${stats.files} page(s), ${stats.copied} asset(s)${stripped}, ${stats.partials} partial(s) skipped — ${ms}ms`);
+  const distRel = path.relative(process.cwd(), DIST) || 'dist';
+  console.log('');
+  autoFormat(distRel);
+}
+
+// Auto-run prettier on dist when it is resolvable from the user's project;
+// otherwise just print the equivalent command as a hint. Keeps templa itself
+// dependency-free while opting users into formatting if they have it.
+function autoFormat(distRel) {
+  let hasPrettier = false;
+  try {
+    require.resolve('prettier', { paths: [process.cwd()] });
+    hasPrettier = true;
+  } catch {}
+
+  if (!hasPrettier) {
+    console.log(`  Tip: pretty-print with \`npx prettier --write ${distRel}\``);
+    return;
+  }
+
+  console.log(`  Formatting ${distRel}/ with prettier...`);
+  const { spawnSync } = require('child_process');
+  const cmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+  const result = spawnSync(cmd, ['prettier', '--write', '--log-level=warn', distRel], { stdio: 'inherit' });
+  if (result.error) console.error(`  prettier failed: ${result.error.message}`);
 }
 
 // ─── init command ────────────────────────────────────────────────────
@@ -337,21 +392,21 @@ const PKG_ROOT = path.resolve(__dirname, '..');
 
 function listScaffoldFiles() {
   const items = [];
-  const scaffoldRoot = path.join(PKG_ROOT, 'scaffold');
+  const examplesRoot = path.join(PKG_ROOT, 'examples');
 
   const walk = (dir, relBase) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       if (entry.name.startsWith('.')) continue;
+      // serve.json is a preview-time config for `npx serve examples` and
+      // should not propagate into init'd projects.
+      if (!relBase && entry.name === 'serve.json') continue;
       const abs = path.join(dir, entry.name);
       const rel = relBase ? `${relBase}/${entry.name}` : entry.name;
       if (entry.isDirectory()) walk(abs, rel);
-      else items.push({ src: abs, dest: rel });
+      else items.push({ src: abs, dest: `src/${rel}` });
     }
   };
-  walk(scaffoldRoot, '');
-
-  // templa.js lives at the package root; init places it at src/js/templa.js
-  items.push({ src: path.join(PKG_ROOT, 'templa.js'), dest: 'src/js/templa.js' });
+  walk(examplesRoot, '');
   return items;
 }
 

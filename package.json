@@ -12,7 +12,7 @@
   "files": [
     "templa.js",
     "bin/",
-    "scaffold/",
+    "examples/",
     "README.md",
     "AGENTS.md",
     "PLANNER.md",

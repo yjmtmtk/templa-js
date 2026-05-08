@@ -14,6 +14,3 @@ body {
   padding: 0 var(--space-3);
   line-height: 1.6;
 }
-header { display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; }
-header nav a { margin-left: var(--space-3); }
-footer { padding: var(--space-3) 0; color: #666; margin-top: var(--space-5); }

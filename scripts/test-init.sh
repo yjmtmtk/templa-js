@@ -17,13 +17,16 @@ test -f src/js/templa.js
 test ! -e src/js/.gitkeep
 test ! -e AGENTS.md
 test ! -e PLANNER.md
+test ! -e src/serve.json
 
 # Build must pass against the freshly-init'd project
 node "$ROOT/bin/templa.js" build
 test -f dist/index.html
 test -f dist/about.html
 test -f dist/css/style.css
-test -f dist/js/templa.js
+# templa.js is dropped from dist when no built HTML still references it
+! test -e dist/js/templa.js
+! test -e dist/js
 # section styles must merge into the linked stylesheet, not to a stray dist/style.css
 ! test -e dist/style.css
 grep -q "\.index-hero" dist/css/style.css
