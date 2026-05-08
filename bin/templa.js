@@ -481,7 +481,7 @@ function init(args) {
   console.log('');
   console.log('Next steps:');
   console.log('  1. Open src/index.html in a browser to preview (runtime mode)');
-  console.log('  2. Run `npx @yjmtmtk/templa build` to produce ./dist');
+  console.log('  2. Run `npx templa-js build` to produce ./dist');
 }
 
 // ─── entry ───────────────────────────────────────────────────────────

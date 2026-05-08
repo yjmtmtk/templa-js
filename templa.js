@@ -43,7 +43,7 @@
  *     <h1>Hello</h1>
  *   </template>
  *
- * Repository: https://github.com/yjmtmtk/templa
+ * Repository: https://github.com/yjmtmtk/templa-js
  * License: MIT
  */
 const templa = (() => {

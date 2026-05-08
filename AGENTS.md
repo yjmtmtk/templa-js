@@ -9,7 +9,7 @@ templa is a tiny HTML template loader giving you:
 - `<template src="...">` to inline another HTML file
 - `{{var}}` for variables; `<template if="key">` / `<template unless="key">` for existence-based conditionals
 - `<slot>` and `<slot name="X">` for Web Components-style layouts
-- A build CLI (`npx @yjmtmtk/templa build`) that statically expands all of the above
+- A build CLI (`npx templa-js build`) that statically expands all of the above
 
 Same syntax works at runtime (browser) and at build time. Zero dependencies.
 
@@ -64,11 +64,11 @@ Lock down everything Phase 2 sub-agents will *consume*. **One agent in charge. N
 
 3. **Page entry HTML files** — each `src/[pagename].html` is a thin composition: an HTML5 document whose `<head>` calls `common-head`, whose `<body>` calls `common-layout` containing an ordered list of `<template src="_partials/[pagename]-[section].html">` lines. No inline section content.
 
-4. **Empty section files** — every `_partials/[pagename]-[section].html` referenced by a page exists as a placeholder file (a single HTML comment is enough) so `npx @yjmtmtk/templa build` succeeds against the skeleton.
+4. **Empty section files** — every `_partials/[pagename]-[section].html` referenced by a page exists as a placeholder file (a single HTML comment is enough) so `npx templa-js build` succeeds against the skeleton.
 
 Phase 1 is complete when:
 
-- `npx @yjmtmtk/templa build` succeeds — **this is the gate; do not dispatch Phase 2 sub-agents until it passes.** Phase 2 assumes a sound skeleton; starting parallel work on a broken one produces incoherent output that's hard to recover from.
+- `npx templa-js build` succeeds — **this is the gate; do not dispatch Phase 2 sub-agents until it passes.** Phase 2 assumes a sound skeleton; starting parallel work on a broken one produces incoherent output that's hard to recover from.
 - The output renders cohesively even with placeholder section content.
 - Every section file the pages reference exists on disk.
 
@@ -267,7 +267,7 @@ When to use: any partial whose presence implies its own visual rules. Co-locatin
 
 Conditionals can be nested. Resolution iterates until stable.
 
-For **conditional attributes** (`disabled` on/off, `target="_blank"` only when external, etc.), templa core does not provide a built-in mechanism — that is intentional. Use a plugin (`@yjmtmtk/templa-plugin-attrs` or similar) when a project needs them. Keeping the core to existence-based block conditionals preserves the "templa looks like HTML the platform should ship" stance.
+For **conditional attributes** (`disabled` on/off, `target="_blank"` only when external, etc.), templa core does not provide a built-in mechanism — that is intentional. Use a plugin (`templa-plugin-attrs` or similar) when a project needs them. Keeping the core to existence-based block conditionals preserves the "templa looks like HTML the platform should ship" stance.
 
 ### Layouts and slots
 
@@ -322,7 +322,7 @@ Do not use Alpine to compose the page (use templa). Do not use templa for runtim
 | Mode | Setup | Best for |
 |---|---|---|
 | **Runtime** | `<script src="…/templa.min.js"></script><script type="module">await templa.start();</script>` | Local dev, prototypes, internal tools, pages where SEO doesn't matter |
-| **Build** | `npx @yjmtmtk/templa build -i ./src -o ./dist` | Production, SEO, social previews, fastest first paint |
+| **Build** | `npx templa-js build -i ./src -o ./dist` | Production, SEO, social previews, fastest first paint |
 
 Layout source files must be **body fragments** (no `<html>` / `<body>` wrapper) so they expand correctly in both modes.
 
@@ -333,9 +333,9 @@ For SEO-sensitive pages, always build before deploy. Crawlers other than Googleb
 ## Build CLI
 
 ```bash
-npx @yjmtmtk/templa build           # default: ./src → ./dist
-npx @yjmtmtk/templa build -i pages -o public
-npx @yjmtmtk/templa --help
+npx templa-js build           # default: ./src → ./dist
+npx templa-js build -i pages -o public
+npx templa-js --help
 ```
 
 The CLI walks every `.html` file in the source tree (skipping `_*` files and directories), expands templates and slots recursively, and writes the result to the output directory. Other files are copied as-is.
@@ -400,14 +400,14 @@ The CLI walks every `.html` file in the source tree (skipping `_*` files and dir
 
 ```bash
 # Install
-npm install @yjmtmtk/templa
+npm install templa-js
 
 # Build
-npx @yjmtmtk/templa build -i ./src -o ./dist
+npx templa-js build -i ./src -o ./dist
 
 # Version
-npx @yjmtmtk/templa --version
+npx templa-js --version
 
 # CDN (runtime)
-# <script src="https://cdn.jsdelivr.net/npm/@yjmtmtk/templa/templa.min.js"></script>
+# <script src="https://cdn.jsdelivr.net/npm/templa-js/templa.min.js"></script>
 ```

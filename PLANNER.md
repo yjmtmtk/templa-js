@@ -33,7 +33,7 @@ project-root/
 └── dist/              ← build output (gitignored, not authored)
 ```
 
-The build command is therefore `npx @yjmtmtk/templa build -i ./src -o ./dist` (the templa CLI defaults). `plan.md` stays at root and is never inside `src/` (so it never leaks into the build output).
+The build command is therefore `npx templa-js build -i ./src -o ./dist` (the templa CLI defaults). `plan.md` stays at root and is never inside `src/` (so it never leaks into the build output).
 
 ## Input you will receive
 
@@ -179,7 +179,7 @@ Example:
 End the plan with this line, verbatim:
 
 ```bash
-npx @yjmtmtk/templa build -i ./src -o ./dist
+npx templa-js build -i ./src -o ./dist
 ```
 
 This is the gate that separates skeleton from content fill. Content sub-agents must not be dispatched until this command succeeds against the placeholder skeleton.
@@ -269,7 +269,7 @@ Fonts: Inter (body), Lora (headings).
 
 ## 9. Build gate
 ```bash
-npx @yjmtmtk/templa build -i ./src -o ./dist
+npx templa-js build -i ./src -o ./dist
 ```
 
 ## Open questions
