@@ -68,4 +68,23 @@ test -f AGENTS.md
 node "$ROOT/bin/templa.js" --help | grep -q "init \[--ai\] \[--force\]"
 node "$ROOT/bin/templa.js" --help | grep -q "AGENTS.md"
 
+# --- case-insensitive keys: {{ctaLabel}} must resolve when attr is ctaLabel ---
+TMP3=$(mktemp -d)
+trap "rm -rf $TMP $TMP2 $TMP3" EXIT
+cd "$TMP3"
+mkdir -p src/_partials
+cat > src/_partials/cta.html <<'EOF'
+<a href="{{ctaHref}}">{{ctaLabel}}</a>
+EOF
+cat > src/index.html <<'EOF'
+<!doctype html><html><body>
+<template src="_partials/cta.html" ctaLabel="Click me" ctaHref="/go"></template>
+</body></html>
+EOF
+node "$ROOT/bin/templa.js" build >/dev/null
+grep -q 'href="/go"' dist/index.html
+grep -q '>Click me<' dist/index.html
+! grep -q '{{ctaLabel}}' dist/index.html
+! grep -q '{{ctaHref}}' dist/index.html
+
 echo "✓ init smoke test passed"

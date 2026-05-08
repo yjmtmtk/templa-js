@@ -13,7 +13,7 @@ It works in two modes:
 ```html
 <!-- index.html -->
 <body>
-  <template src="_partials/header.html" title="Home" loggedIn="yes"></template>
+  <template src="_partials/header.html" title="Home" logged-in="yes"></template>
   <main>...</main>
   <template src="_partials/footer.html"></template>
 
@@ -26,10 +26,10 @@ It works in two modes:
 <!-- _partials/header.html -->
 <header>
   <h1>{{title}}</h1>
-  <template if="loggedIn">
+  <template if="logged-in">
     <a href="/logout">Logout</a>
   </template>
-  <template unless="loggedIn">
+  <template unless="logged-in">
     <a href="/login">Login</a>
   </template>
 </header>
@@ -110,6 +110,8 @@ Each attribute on the calling `<template>` becomes a string-valued data key insi
 Conditionals (`<template if="key">`) are existence-based, so any non-empty string is truthy — `featured="yes"` is enough to enable a block.
 
 Reserved attributes — these are not collected as data: `src` (the partial path), `slot` (slot filler name), `if` / `unless` (conditional markers). Any `data-*` attribute is also skipped, by HTML metadata convention.
+
+**Keys are case-insensitive.** HTML attribute names are case-insensitive in the spec and the browser DOM lowercases them, so templa normalises both the attribute name and the `{{var}}` lookup to lowercase. `<template ctaLabel="X">` and `{{ctaLabel}}` both resolve via `ctalabel` and behave identically in runtime and build mode. **Use kebab-case** (`cta-label`, `og-image`, `hero-bg-color`) — it survives every layer unchanged and reads as idiomatic HTML.
 
 ### Template syntax
 

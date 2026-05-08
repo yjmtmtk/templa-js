@@ -24,6 +24,12 @@
  *
  *     <template src="card.html" title="Tiny" body="Light"></template>
  *
+ *   - Keys are case-insensitive. HTML attribute names are case-
+ *     insensitive in the spec and the browser DOM lowercases them, so
+ *     templa normalises both sides: `<template ctaLabel="X">` and
+ *     `{{ctaLabel}}` both resolve via the lowercased key `ctalabel`.
+ *     Use kebab-case (`cta-label`) for HTML idiomaticity.
+ *
  * Syntax:
  *   {{key}}                       HTML-escaped variable
  *   {{{key}}}                     raw variable (no escape)
@@ -87,9 +93,19 @@ const templa = (() => {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
+  // Data keys are case-insensitive to mirror HTML's own attribute
+  // semantics (browsers lowercase attribute names in the DOM). Both
+  // <template ctaLabel="X"> and {{ctaLabel}} normalize to "ctalabel"
+  // so kebab-case, camelCase, and PascalCase all work the same.
   const render = (html, data) => html
-    .replace(/{{{\s*([\w-]+)\s*}}}/g, (m, k) => k in data ? data[k] : m)
-    .replace(/{{\s*([\w-]+)\s*}}/g, (m, k) => k in data ? esc(data[k]) : m);
+    .replace(/{{{\s*([\w-]+)\s*}}}/g, (m, k) => {
+      const lk = k.toLowerCase();
+      return lk in data ? data[lk] : m;
+    })
+    .replace(/{{\s*([\w-]+)\s*}}/g, (m, k) => {
+      const lk = k.toLowerCase();
+      return lk in data ? esc(data[lk]) : m;
+    });
 
   const rebase = (html, baseUrl) => html.replace(
     /(<template\b[^>]*\bsrc\s*=\s*["'])([^"']+)/gi,
@@ -99,9 +115,9 @@ const templa = (() => {
   // Read an attribute value out of a raw attribute string. Tries double then
   // single quoting so values containing the other quote survive intact.
   const getAttr = (attrs, name) => {
-    const dq = attrs.match(new RegExp(`\\b${name}\\s*=\\s*"([^"]*)"`));
+    const dq = attrs.match(new RegExp(`\\b${name}\\s*=\\s*"([^"]*)"`, 'i'));
     if (dq) return dq[1];
-    const sq = attrs.match(new RegExp(`\\b${name}\\s*=\\s*'([^']*)'`));
+    const sq = attrs.match(new RegExp(`\\b${name}\\s*=\\s*'([^']*)'`, 'i'));
     return sq ? sq[1] : null;
   };
 
@@ -184,9 +200,9 @@ const templa = (() => {
         const ifKey = getAttr(b.attrs, 'if');
         const unlessKey = getAttr(b.attrs, 'unless');
         if (ifKey !== null) {
-          html = html.slice(0, b.start) + (data[ifKey] ? b.inner : '') + html.slice(b.end);
+          html = html.slice(0, b.start) + (data[ifKey.toLowerCase()] ? b.inner : '') + html.slice(b.end);
         } else if (unlessKey !== null) {
-          html = html.slice(0, b.start) + (!data[unlessKey] ? b.inner : '') + html.slice(b.end);
+          html = html.slice(0, b.start) + (!data[unlessKey.toLowerCase()] ? b.inner : '') + html.slice(b.end);
         }
       }
     } while (html !== prev);
@@ -195,12 +211,16 @@ const templa = (() => {
 
   // Every attribute is a string data key, except: src/slot/if/unless are
   // reserved, and any data-* attribute is treated as metadata (skipped).
+  // Keys are stored lowercased — HTML attribute names are case-insensitive
+  // and the browser DOM already lowercases them, so we mirror that on
+  // the build side too.
   const RESERVED = new Set(['src', 'slot', 'if', 'unless']);
   const collectData = el => {
     const data = {};
     for (const a of el.attributes) {
-      if (RESERVED.has(a.name) || a.name.startsWith('data-')) continue;
-      data[a.name] = a.value;
+      const n = a.name.toLowerCase();
+      if (RESERVED.has(n) || n.startsWith('data-')) continue;
+      data[n] = a.value;
     }
     return data;
   };

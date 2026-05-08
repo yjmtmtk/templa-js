@@ -203,6 +203,8 @@ Reserved attributes — these are NOT collected as data:
 
 Any `data-*` attribute on a `<template>` is also skipped from data collection — it's reserved as HTML metadata convention.
 
+**Keys are case-insensitive.** HTML attribute names are case-insensitive in the spec, and the browser DOM lowercases them automatically. templa mirrors this by normalising both the attribute name and the `{{var}}` lookup to lowercase, so `<template ctaLabel="X">` paired with `{{ctaLabel}}` works in both runtime and build mode (both resolve via the lowercased key `ctalabel`). The convention in this codebase is **kebab-case** (`cta-label`, `og-image`, `hero-bg-color`) — it survives unchanged through every layer and reads as idiomatic HTML.
+
 Strings handle every common case. For conditionals, the value is checked existentially (truthy unless empty), so `featured="yes"` is enough. There's no typed-value escape hatch in the core; if a project needs typed values (numbers, booleans, arrays, objects, computed values), that goes through a plugin.
 
 A few patterns to avoid (they are silently ignored):
@@ -261,8 +263,8 @@ When to use: any partial whose presence implies its own visual rules. Co-locatin
 **Existence-based only.** The value of `if`/`unless` is a single key looked up in the surrounding data. There are no expressions, no operators, no helpers, no `else`. If you need an else branch, write the inverse pair:
 
 ```html
-<template if="loggedIn"><a href="/logout">Logout</a></template>
-<template unless="loggedIn"><a href="/login">Login</a></template>
+<template if="logged-in"><a href="/logout">Logout</a></template>
+<template unless="logged-in"><a href="/login">Login</a></template>
 ```
 
 Conditionals can be nested. Resolution iterates until stable.

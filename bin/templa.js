@@ -34,17 +34,27 @@ const escHtml = s => String(s)
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
 
+// Data keys are case-insensitive to mirror HTML's own attribute
+// semantics (browsers lowercase attribute names in the DOM). Both
+// <template ctaLabel="X"> and {{ctaLabel}} normalize to "ctalabel"
+// so kebab-case, camelCase, and PascalCase all work the same.
 function render(html, data) {
   return html
-    .replace(/{{{\s*([\w-]+)\s*}}}/g, (m, k) => k in data ? data[k] : m)
-    .replace(/{{\s*([\w-]+)\s*}}/g, (m, k) => k in data ? escHtml(data[k]) : m);
+    .replace(/{{{\s*([\w-]+)\s*}}}/g, (m, k) => {
+      const lk = k.toLowerCase();
+      return lk in data ? data[lk] : m;
+    })
+    .replace(/{{\s*([\w-]+)\s*}}/g, (m, k) => {
+      const lk = k.toLowerCase();
+      return lk in data ? escHtml(data[lk]) : m;
+    });
 }
 
 // ─── attribute / template / slot parsing ─────────────────────────────
 function getAttr(attrs, name) {
-  const dq = attrs.match(new RegExp(`\\b${name}\\s*=\\s*"([^"]*)"`));
+  const dq = attrs.match(new RegExp(`\\b${name}\\s*=\\s*"([^"]*)"`, 'i'));
   if (dq) return dq[1];
-  const sq = attrs.match(new RegExp(`\\b${name}\\s*=\\s*'([^']*)'`));
+  const sq = attrs.match(new RegExp(`\\b${name}\\s*=\\s*'([^']*)'`, 'i'));
   return sq ? sq[1] : null;
 }
 
@@ -128,7 +138,7 @@ function collectData(attrs) {
   ATTR.lastIndex = 0;
   let m;
   while ((m = ATTR.exec(attrs))) {
-    const name = m[1];
+    const name = m[1].toLowerCase();
     if (RESERVED.has(name) || name.startsWith('data-')) continue;
     data[name] = m[2] ?? m[3] ?? '';
   }
@@ -211,9 +221,9 @@ function applyConditionals(html, data) {
       const ifKey = getAttr(b.attrs, 'if');
       const unlessKey = getAttr(b.attrs, 'unless');
       if (ifKey !== null) {
-        html = html.slice(0, b.start) + (data[ifKey] ? b.inner : '') + html.slice(b.end);
+        html = html.slice(0, b.start) + (data[ifKey.toLowerCase()] ? b.inner : '') + html.slice(b.end);
       } else if (unlessKey !== null) {
-        html = html.slice(0, b.start) + (!data[unlessKey] ? b.inner : '') + html.slice(b.end);
+        html = html.slice(0, b.start) + (!data[unlessKey.toLowerCase()] ? b.inner : '') + html.slice(b.end);
       }
     }
   } while (html !== prev);
