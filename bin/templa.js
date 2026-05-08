@@ -365,25 +365,35 @@ function build(args) {
   autoFormat(distRel);
 }
 
-// Auto-run prettier on dist when it is resolvable from the user's project;
-// otherwise just print the equivalent command as a hint. Keeps templa itself
-// dependency-free while opting users into formatting if they have it.
-function autoFormat(distRel) {
-  let hasPrettier = false;
+// Auto-run prettier on dist when it is reachable, locally (devDep) or
+// globally (on PATH); otherwise just print the equivalent command as a
+// hint. Keeps templa itself dependency-free while opting users into
+// formatting if they have it.
+function findPrettier() {
+  const isWin = process.platform === 'win32';
+  // Local: project node_modules — invoke through npx so it picks up
+  // the right .bin shim across platforms.
   try {
     require.resolve('prettier', { paths: [process.cwd()] });
-    hasPrettier = true;
+    return { cmd: isWin ? 'npx.cmd' : 'npx', prefix: ['prettier'] };
   } catch {}
+  // Global: anything on PATH (typically `npm i -g prettier`).
+  const { spawnSync } = require('child_process');
+  const which = spawnSync(isWin ? 'where' : 'which', ['prettier'], { stdio: 'ignore' });
+  if (which.status === 0) return { cmd: isWin ? 'prettier.cmd' : 'prettier', prefix: [] };
+  return null;
+}
 
-  if (!hasPrettier) {
+function autoFormat(distRel) {
+  const runner = findPrettier();
+  if (!runner) {
     console.log(`  Tip: pretty-print with \`npx prettier --write ${distRel}\``);
     return;
   }
 
   console.log(`  Formatting ${distRel}/ with prettier...`);
   const { spawnSync } = require('child_process');
-  const cmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-  const result = spawnSync(cmd, ['prettier', '--write', '--log-level=warn', distRel], { stdio: 'inherit' });
+  const result = spawnSync(runner.cmd, [...runner.prefix, '--write', '--log-level=warn', distRel], { stdio: 'inherit' });
   if (result.error) console.error(`  prettier failed: ${result.error.message}`);
 }
 
