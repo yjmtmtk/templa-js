@@ -1,14 +1,15 @@
 <style data-merge="css/style.css">
   header { display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; }
   header nav a { margin-left: var(--space-3); }
+  header[data-page="index"] a[data-page="index"],
+  header[data-page="about"] a[data-page="about"] {
+    font-weight: bold;
+  }
 </style>
-<style>
-  nav a[data-key="{{page}}"] { font-weight: bold; }
-</style>
-<header>
+<header data-page="{{page}}">
   <strong>My templa site</strong>
   <nav>
-    <a href="./" data-key="index">Home</a>
-    <a href="./about.html" data-key="about">About</a>
+    <a href="./" data-page="index">Home</a>
+    <a href="./about.html" data-page="about">About</a>
   </nav>
 </header>
