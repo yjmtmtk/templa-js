@@ -88,8 +88,8 @@ const templa = (() => {
     .replace(/'/g, '&#39;');
 
   const render = (html, data) => html
-    .replace(/{{{\s*(\w+)\s*}}}/g, (m, k) => k in data ? data[k] : m)
-    .replace(/{{\s*(\w+)\s*}}/g, (m, k) => k in data ? esc(data[k]) : m);
+    .replace(/{{{\s*([\w-]+)\s*}}}/g, (m, k) => k in data ? data[k] : m)
+    .replace(/{{\s*([\w-]+)\s*}}/g, (m, k) => k in data ? esc(data[k]) : m);
 
   const rebase = (html, baseUrl) => html.replace(
     /(<template\b[^>]*\bsrc\s*=\s*["'])([^"']+)/gi,

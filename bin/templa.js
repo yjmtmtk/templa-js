@@ -36,8 +36,8 @@ const escHtml = s => String(s)
 
 function render(html, data) {
   return html
-    .replace(/{{{\s*(\w+)\s*}}}/g, (m, k) => k in data ? data[k] : m)
-    .replace(/{{\s*(\w+)\s*}}/g, (m, k) => k in data ? escHtml(data[k]) : m);
+    .replace(/{{{\s*([\w-]+)\s*}}}/g, (m, k) => k in data ? data[k] : m)
+    .replace(/{{\s*([\w-]+)\s*}}/g, (m, k) => k in data ? escHtml(data[k]) : m);
 }
 
 // ─── attribute / template / slot parsing ─────────────────────────────
